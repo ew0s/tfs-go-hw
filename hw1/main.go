@@ -17,7 +17,7 @@ type color = argumentValue
 
 type figureProperties map[argumentType]argumentValue
 type structureAlgorithm func(*figure)
-type figureModifier func(*figure, *figureProperties)
+type figureModifier func(*figure, figureProperties)
 
 const (
 	Size  argumentType = "size"
@@ -67,9 +67,9 @@ func (f *figure) updateElements(elem string) {
 func (f *figure) init() figureProperties {
 	properties := figureProperties{}
 	properties.fillWIthDefaultValues()
-	setSize(properties[Size])(f, &properties)
-	setChar(properties[Char])(f, &properties)
-	setColor(properties[Color])(f, &properties)
+	setSize(properties[Size])(f, properties)
+	setChar(properties[Char])(f, properties)
+	setColor(properties[Color])(f, properties)
 	return properties
 }
 
@@ -82,41 +82,41 @@ func (f figure) print() {
 	}
 }
 
-func (f *figureProperties) fillWIthDefaultValues() {
-	(*f)[Size] = SizeDefaultValue
-	(*f)[Char] = CharDefaultValue
-	(*f)[Color] = ColorDefaultValue
+func (f figureProperties) fillWIthDefaultValues() {
+	f[Size] = SizeDefaultValue
+	f[Char] = CharDefaultValue
+	f[Color] = ColorDefaultValue
 }
 
 func setSize(v argumentValue) figureModifier {
-	return func(fig *figure, properties *figureProperties) {
+	return func(fig *figure, properties figureProperties) {
 		if _, ok := v.toInt(); ok {
-			(*properties)[Size] = v
+			properties[Size] = v
 		}
 		var size int
 		var ok bool
 		if size, ok = v.toInt(); !ok {
-			size, _ = (*properties)[Size].toInt()
+			size, _ = properties[Size].toInt()
 		}
 		*fig = make(figure, size)
 		for idx := range *fig {
 			(*fig)[idx] = make([]string, size)
 		}
-		newElement := (*properties)[Color] + (*properties)[Char]
+		newElement := properties[Color] + properties[Char]
 		fig.updateElements(string(newElement))
 	}
 }
 
 func setChar(v argumentValue) figureModifier {
-	return func(fig *figure, properties *figureProperties) {
+	return func(fig *figure, properties figureProperties) {
 		if _, ok := v.toRune(); ok {
-			(*properties)[Char] = v
+			properties[Char] = v
 		}
 		var char rune
 		var ok bool
-		color := (*properties)[Color]
+		color := properties[Color]
 		if char, ok = v.toRune(); !ok {
-			char, _ = (*properties)[Char].toRune()
+			char, _ = properties[Char].toRune()
 		}
 		newElement := string(color) + string(char)
 		fig.updateElements(newElement)
@@ -124,10 +124,10 @@ func setChar(v argumentValue) figureModifier {
 }
 
 func setColor(v argumentValue) figureModifier {
-	return func(fig *figure, properties *figureProperties) {
-		(*properties)[Color] = v
+	return func(fig *figure, properties figureProperties) {
+		properties[Color] = v
 		color := v
-		char := (*properties)[Char]
+		char := properties[Char]
 		newElement := string(color) + string(char)
 		fig.updateElements(newElement)
 	}
@@ -158,7 +158,7 @@ func constructFigure(algo structureAlgorithm, modifiers ...figureModifier) figur
 	var figure figure
 	properties := figure.init()
 	for _, modifier := range modifiers {
-		modifier(&figure, &properties)
+		modifier(&figure, properties)
 	}
 
 	algo(&figure)
