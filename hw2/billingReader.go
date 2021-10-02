@@ -41,11 +41,11 @@ func (r jsonReader) readBillings(billingsFilePath string) (billings, error) {
 	if err != nil {
 		log.Println("unmarshal billings error happened:", err)
 	}
-	var validEntries billings
+	var notSkippedEntries billings
 	for _, entry := range entries {
-		if !entry.skip {
-			validEntries = append(validEntries, entry)
+		if err := entry.validate(); err == nil {
+			notSkippedEntries = append(notSkippedEntries, entry)
 		}
 	}
-	return validEntries, nil
+	return notSkippedEntries, nil
 }

@@ -36,11 +36,19 @@ type billing struct {
 	Value     billingValue     `json:"value"`
 	ID        billingID        `json:"id"`
 	invalid   bool
-	skip      bool
 }
 
+type billingJSONFields map[string]interface{}
 type billingTypeValidValue string
-type jsonFiled string
+
+const (
+	companyField   = "company"
+	typeField      = "type"
+	valueField     = "value"
+	idField        = "id"
+	createdAtFiled = "created_at"
+	operationField = "operation"
+)
 
 const QuoteByte = 34
 
@@ -49,15 +57,6 @@ const (
 	outcome billingTypeValidValue = "outcome"
 	plus    billingTypeValidValue = "+"
 	minus   billingTypeValidValue = "-"
-)
-
-const (
-	companyField   jsonFiled = "company"
-	createdAtField jsonFiled = "created_at"
-	typeField      jsonFiled = "type"
-	valueField     jsonFiled = "value"
-	idField        jsonFiled = "id"
-	operationField jsonFiled = "operation"
 )
 
 func (b *billingCompany) UnmarshalJSON(data []byte) error {
@@ -94,7 +93,7 @@ func (b *billingType) UnmarshalJSON(data []byte) error {
 	case income, outcome, plus, minus:
 		b.value = strType
 	default:
-		return fmt.Errorf("billingType: invalid billing type passed")
+		return fmt.Errorf("billingType: invalid billing type passed - %s", strType)
 	}
 	return nil
 }
@@ -129,98 +128,74 @@ func (b *billingID) UnmarshalJSON(data []byte) error {
 }
 
 func (b *billing) UnmarshalJSON(data []byte) error {
-	unwrappedData, err := b.unwrapBillingData(data)
-	if err != nil {
-		log.Println("billing: ", err)
+	var billingJSONMap billingJSONFields
+	if err := json.Unmarshal(data, &billingJSONMap); err != nil {
+		return fmt.Errorf("billing unmarshal: %w", err)
 	}
-	b.setBillingFields(unwrappedData, companyField)
-	b.setBillingFields(unwrappedData, typeField)
-	b.setBillingFields(unwrappedData, valueField)
-	b.setBillingFields(unwrappedData, idField)
-	b.setBillingFields(unwrappedData, createdAtField)
+	billingJSONMap.unwrapOperationField()
+	*b = billingJSONMap.parseFields()
 	return nil
 }
 
-func (b *billing) setBillingFields(data map[string]*json.RawMessage, billingField jsonFiled) {
-	value, ok := data[string(billingField)]
-	if !ok {
-		return
+func (b *billing) validate() error {
+	if b.Company == (billingCompany{}) {
+		return fmt.Errorf("company field is invalid")
 	}
-	switch billingField {
-	case companyField:
-		if err := unmarshalValue(*value, &b.Company); err != nil {
-			b.skip = true
-			log.Println(err)
-		}
-	case typeField:
-		if err := unmarshalValue(*value, &b.Type); err != nil {
-			b.invalid = true
-			log.Println(err)
-		}
-	case valueField:
-		if err := unmarshalValue(*value, &b.Value); err != nil {
-			b.invalid = true
-			log.Println(err)
-		}
-	case idField:
-		if err := unmarshalValue(*value, &b.ID); err != nil {
-			b.skip = true
-			log.Println(err)
-		}
-	case createdAtField:
-		if err := unmarshalValue(*value, &b.CreatedAt); err != nil {
-			b.skip = true
-			log.Println(err)
-		}
+	if b.ID == (billingID{}) {
+		return fmt.Errorf("id field is invalid")
 	}
-	b.toSkip(data)
-	b.toSetInvalid(data)
-}
-
-func (b *billing) toSkip(data map[string]*json.RawMessage) {
-	if _, ok := data[string(companyField)]; !ok {
-		b.skip = true
+	if b.CreatedAt == (billingCreatedAt{}) {
+		return fmt.Errorf("created_at field is invalid")
 	}
-	if _, ok := data[string(createdAtField)]; !ok {
-		b.skip = true
-	}
-	if _, ok := data[string(idField)]; !ok {
-		b.skip = true
-	}
-}
-
-func (b *billing) toSetInvalid(data map[string]*json.RawMessage) {
-	if _, ok := data[string(typeField)]; !ok {
+	if b.Type == (billingType{}) {
 		b.invalid = true
 	}
-	if _, ok := data[string(valueField)]; !ok {
+	if b.Value == (billingValue{}) {
 		b.invalid = true
+	}
+	return nil
+}
+
+func (fields billingJSONFields) unwrapOperationField() {
+	if operation, ok := fields[operationField].(map[string]interface{}); ok {
+		for key, value := range operation {
+			fields[key] = value
+		}
+		delete(fields, operationField)
 	}
 }
 
-func unmarshalValue(data []byte, fieldType interface{}) error {
+func (fields billingJSONFields) parseFields() billing {
+	var b billing
+	fields.parseField(companyField, &b.Company)
+	fields.parseField(typeField, &b.Type)
+	fields.parseField(valueField, &b.Value)
+	fields.parseField(idField, &b.ID)
+	fields.parseField(createdAtFiled, &b.CreatedAt)
+	return b
+}
+
+func (fields billingJSONFields) parseField(fieldName string, billingField interface{}) {
+	if data, err := fields.getByteField(fieldName); err == nil {
+		unmarshalValue(data, billingField)
+	}
+}
+
+func (fields billingJSONFields) getByteField(name string) ([]byte, error) {
+	if value, ok := fields[name]; ok {
+		bytes, err := json.Marshal(value)
+		if err != nil {
+			return nil, fmt.Errorf("get byte field: %w", err)
+		}
+		return bytes, nil
+	}
+	return nil, fmt.Errorf("get byte field: no such field: %s", name)
+}
+
+func unmarshalValue(data []byte, fieldType interface{}) {
 	if err := json.Unmarshal(data, fieldType); err != nil {
-		return fmt.Errorf("unmarshalValue: %w", err)
+		log.Println(err)
 	}
-	return nil
-}
-
-func (b billing) unwrapBillingData(data []byte) (map[string]*json.RawMessage, error) {
-	var jsonBilling map[string]*json.RawMessage
-	if err := json.Unmarshal(data, &jsonBilling); err != nil {
-		return nil, fmt.Errorf("unwrapBillingData: %w", err)
-	}
-	if value, ok := jsonBilling[string(operationField)]; ok {
-		var operationJSON map[string]*json.RawMessage
-		if err := json.Unmarshal(*value, &operationJSON); err != nil {
-			return nil, fmt.Errorf("unwrapBillingData: unwrap operation: %w", err)
-		}
-		for k, v := range operationJSON {
-			jsonBilling[k] = v
-		}
-		delete(jsonBilling, string(operationField))
-	}
-	return jsonBilling, nil
 }
 
 func unmarshalToString(data []byte) (string, error) {
