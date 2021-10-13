@@ -3,12 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 )
 
 type filePath = string
-type logPrefix = string
 type appEnviromentGetter func() (filePath, error)
 type getterFunctionOrder int
 
@@ -21,10 +19,6 @@ const (
 	FilePathFlagUsage       = "tell application that json file passed as flag value"
 	FilePathFlagName        = "file-path"
 	FilePathEnvVariableName = "FILE_PATH"
-)
-
-const (
-	ErrorPrefix logPrefix = "[ERROR]: "
 )
 
 const (
@@ -44,11 +38,11 @@ func (e *appEnviroment) init() {
 
 func (e *appEnviroment) setupEnviroment() error {
 	e.init()
-	setupLogger(ErrorPrefix)
 	var err error
+	var path string
 	for setterOrder := 0; setterOrder < len(e.getters); setterOrder++ {
 		setter := e.getters[getterFunctionOrder(setterOrder)]
-		if path, err := setter(); err == nil {
+		if path, err = setter(); err == nil {
 			e.pathToBillingFile = path
 			return nil
 		}
@@ -93,9 +87,4 @@ func getAppEnvInstance() *appEnviroment {
 		appEnvSingleInstance = &appEnviroment{}
 	}
 	return appEnvSingleInstance
-}
-
-func setupLogger(prefix logPrefix) {
-	log.SetPrefix(prefix)
-	log.SetFlags(0)
 }

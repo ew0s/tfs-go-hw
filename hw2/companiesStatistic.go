@@ -48,7 +48,7 @@ func (c *companyStatistic) sortInvalidOperations() {
 
 func (c *companyStatistic) updateStatistic(companyBilling billing) {
 	if companyBilling.invalid {
-		c.InvalidOperations = append(c.InvalidOperations, invalidOperation{ID: companyBilling.ID.value})
+		c.InvalidOperations = append(c.InvalidOperations, invalidOperation{ID: string(companyBilling.id)})
 	} else {
 		c.ValidOperationsCount++
 		c.updateBalance(companyBilling)
@@ -56,26 +56,26 @@ func (c *companyStatistic) updateStatistic(companyBilling billing) {
 }
 
 func (c *companyStatistic) updateBalance(companyBilling billing) {
-	switch companyBilling.Type.value {
-	case string(income), string(plus):
-		c.Balance.value += companyBilling.Value.value
+	switch companyBilling.bType {
+	case billingType(income), billingType(plus):
+		c.Balance.value += float64(companyBilling.value)
 	default:
-		c.Balance.value -= companyBilling.Value.value
+		c.Balance.value -= float64(companyBilling.value)
 	}
 }
 
 func calculateCompaniesStatistic(billingsStatistic billings) []companyStatistic {
 	companies := make(map[string]*companyStatistic)
 	for _, billing := range billingsStatistic {
-		if _, ok := companies[billing.Company.company]; !ok {
-			companies[billing.Company.company] = &companyStatistic{
-				Company:              billing.Company.company,
+		if _, ok := companies[string(billing.company)]; !ok {
+			companies[string(billing.company)] = &companyStatistic{
+				Company:              string(billing.company),
 				ValidOperationsCount: 0,
 				Balance:              balance{value: 0},
 				InvalidOperations:    []invalidOperation{},
 			}
 		}
-		companies[billing.Company.company].updateStatistic(billing)
+		companies[string(billing.company)].updateStatistic(billing)
 	}
 	return sortStatistic(companies)
 }

@@ -2,44 +2,65 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
-type billingCompany struct {
-	company string
+type validator interface {
+	isValid() error
 }
 
-type billingCreatedAt struct {
-	value time.Time
+type billingCompany string
+type billingType string
+type billingValue float64
+type billingID string
+type billingCreatedAt time.Time
+
+type operation struct {
+	Value     billingValue     `json:"value"`
+	Type      billingType      `json:"type"`
+	ID        billingID        `json:"id"`
+	CreatedAt billingCreatedAt `json:"created_at"`
 }
 
-type billingType struct {
-	value string
-}
-
-type billingValue struct {
-	value float64
-}
-
-type billingID struct {
-	value string
+type billingRaw struct {
+	Company   billingCompany `json:"company"`
+	Operation operation      `json:"operation"`
+	operation
 }
 
 type billing struct {
-	Company   billingCompany   `json:"company"`
-	CreatedAt billingCreatedAt `json:"created_at"`
-	Type      billingType      `json:"type"`
-	Value     billingValue     `json:"value"`
-	ID        billingID        `json:"id"`
+	company   billingCompany
+	bType     billingType
+	value     billingValue
+	id        billingID
+	createdAt billingCreatedAt
 	invalid   bool
 }
 
 type billingJSONFields map[string]interface{}
 type billingTypeValidValue string
+
+var (
+	ErrBillingCompany        = errors.New("billing company")
+	ErrBillingType           = errors.New("billing type")
+	ErrInvalidBillingType    = errors.New("invalid billing type passed")
+	ErrBillingValue          = errors.New("billing value")
+	ErrBillingID             = errors.New("billing ID")
+	ErrBillingCreatedAt      = errors.New("billing created at")
+	ErrJSONEmptyString       = errors.New("json: unable to unmarshal, value is empty string")
+	ErrSetupBillingField     = errors.New("setup billing field")
+	ErrUnmarshalToNumber     = errors.New("unmarshal to number")
+	ErrUnmarshalToString     = errors.New("unmarshal to string")
+	ErrPassedValueNotPointer = errors.New("passed value is not a pointer")
+	ErrSkipBilling           = errors.New("skip billing")
+	ErrInvalidBilling        = errors.New("invalid error")
+)
 
 const (
 	companyField   = "company"
@@ -62,38 +83,63 @@ const (
 func (b *billingCompany) UnmarshalJSON(data []byte) error {
 	strCompany, err := unmarshalToString(data)
 	if err != nil {
-		return fmt.Errorf("billingCompany: %w", err)
+		return fmt.Errorf("%s: %w", ErrBillingCompany, err)
 	}
 	if len(strCompany) == 0 {
-		return fmt.Errorf("billingCompany: json: unable to unmarshal, value is empty string")
+		return fmt.Errorf("%s: %w", ErrBillingCompany, ErrJSONEmptyString)
 	}
-	b.company = strCompany
+	*b = billingCompany(strCompany)
+	return nil
+}
+
+func (b billingCompany) isValid() error {
+	if b == "" {
+		return ErrSkipBilling
+	}
 	return nil
 }
 
 func (b *billingCreatedAt) UnmarshalJSON(data []byte) error {
 	strDate, err := unmarshalToString(data)
 	if err != nil {
-		return fmt.Errorf("billingCreatedAt: %w", err)
+		return fmt.Errorf("%s: %w", ErrBillingCreatedAt, err)
 	}
 	t, err := time.Parse(time.RFC3339, strDate)
 	if err != nil {
-		return fmt.Errorf("billingCreditAt: %w", err)
+		return fmt.Errorf("%s: %w", ErrBillingCreatedAt, err)
 	}
-	b.value = t
+	*b = billingCreatedAt(t)
+	return nil
+}
+
+func (b billingCreatedAt) isZero() bool {
+	return time.Time(b) == time.Time{}
+}
+
+func (b billingCreatedAt) isValid() error {
+	if b.isZero() {
+		return ErrSkipBilling
+	}
 	return nil
 }
 
 func (b *billingType) UnmarshalJSON(data []byte) error {
 	strType, err := unmarshalToString(data)
 	if err != nil {
-		return fmt.Errorf("billingType: %w", err)
+		return fmt.Errorf("%s: %w", ErrBillingType, err)
 	}
 	switch billingTypeValidValue(strType) {
 	case income, outcome, plus, minus:
-		b.value = strType
+		*b = billingType(strType)
 	default:
-		return fmt.Errorf("billingType: invalid billing type passed - %s", strType)
+		return fmt.Errorf("%s: %w - %s", ErrBillingType, ErrInvalidBillingType, strType)
+	}
+	return nil
+}
+
+func (b billingType) isValid() error {
+	if b == "" {
+		return ErrInvalidBilling
 	}
 	return nil
 }
@@ -102,9 +148,16 @@ func (b *billingValue) UnmarshalJSON(data []byte) error {
 	var floatValue float64
 	err := unmarshalToNumber(data, &floatValue)
 	if err != nil {
-		return fmt.Errorf("billingValue: %w", err)
+		return fmt.Errorf("%s: %w", ErrBillingValue, err)
 	}
-	b.value = floatValue
+	*b = billingValue(floatValue)
+	return nil
+}
+
+func (b billingValue) isValid() error {
+	if b == 0 {
+		return ErrInvalidBilling
+	}
 	return nil
 }
 
@@ -114,95 +167,104 @@ func (b *billingID) UnmarshalJSON(data []byte) error {
 	if data[0] == QuoteByte {
 		err := json.Unmarshal(data, &strID)
 		if err != nil {
-			return fmt.Errorf("unmarshallToNumber: %w", err)
+			return fmt.Errorf("%s: %w", ErrBillingID, err)
 		}
-		b.value = strID
+		*b = billingID(strID)
 	} else {
 		err := json.Unmarshal(data, &intID)
 		if err != nil {
-			return fmt.Errorf("unmarshallToNumber: %w", err)
+			return fmt.Errorf("%s: %w", ErrBillingID, err)
 		}
-		b.value = strconv.Itoa(intID)
+		*b = billingID(strconv.Itoa(intID))
 	}
 	return nil
 }
 
-func (b *billing) UnmarshalJSON(data []byte) error {
-	var billingJSONMap billingJSONFields
-	if err := json.Unmarshal(data, &billingJSONMap); err != nil {
-		return fmt.Errorf("billing unmarshal: %w", err)
+func (b billingID) isValid() error {
+	if b == "" {
+		return ErrSkipBilling
 	}
-	billingJSONMap.unwrapOperationField()
-	*b = billingJSONMap.parseFields()
 	return nil
 }
 
-func (b *billing) validate() error {
-	if b.Company == (billingCompany{}) {
-		return fmt.Errorf("company field is invalid")
-	}
-	if b.ID == (billingID{}) {
-		return fmt.Errorf("id field is invalid")
-	}
-	if b.CreatedAt == (billingCreatedAt{}) {
-		return fmt.Errorf("created_at field is invalid")
-	}
-	if b.Type == (billingType{}) {
+func newBilling(fields billingJSONFields) (billing, error) {
+	var bRaw billingRaw
+	fields.setupBillingField(companyField, &bRaw.Company)
+	fields.setupBillingField(valueField, &bRaw.Value)
+	fields.setupBillingField(typeField, &bRaw.Type)
+	fields.setupBillingField(idField, &bRaw.ID)
+	fields.setupBillingField(createdAtFiled, &bRaw.CreatedAt)
+	fields.setupBillingField(operationField, &bRaw.Operation)
+	b := bRaw.toBilling()
+	err := b.validate()
+	if err != nil {
+		errors.Is(err, ErrInvalidBilling)
 		b.invalid = true
 	}
-	if b.Value == (billingValue{}) {
-		b.invalid = true
-	}
-	return nil
+	return b, err
 }
 
-func (fields billingJSONFields) unwrapOperationField() {
-	if operation, ok := fields[operationField].(map[string]interface{}); ok {
-		for key, value := range operation {
-			fields[key] = value
+func (b billing) validate() error {
+	validators := []validator{b.company, b.bType, b.value, b.id, b.createdAt}
+	var lastError error
+	for _, val := range validators {
+		if err := val.isValid(); err != nil {
+			switch err {
+			case ErrSkipBilling:
+				return err
+			case ErrInvalidBilling:
+				lastError = err
+			}
 		}
-		delete(fields, operationField)
+	}
+	return lastError
+}
+
+func (fields billingJSONFields) setupBillingField(fieldName string, billingField interface{}) {
+	val, ok := fields[fieldName]
+	if !ok {
+		return
+	}
+	data, err := json.Marshal(val)
+	if err != nil {
+		log.Warn(fmt.Errorf("%v: %w", ErrSetupBillingField, err))
+	}
+	if err := json.Unmarshal(data, billingField); err != nil {
+		log.Warn(fmt.Errorf("%v: %w", ErrSetupBillingField, err))
 	}
 }
 
-func (fields billingJSONFields) parseFields() billing {
+func (bRaw billingRaw) toBilling() billing {
 	var b billing
-	fields.parseField(companyField, &b.Company)
-	fields.parseField(typeField, &b.Type)
-	fields.parseField(valueField, &b.Value)
-	fields.parseField(idField, &b.ID)
-	fields.parseField(createdAtFiled, &b.CreatedAt)
+	b.company = bRaw.Company
+	if bRaw.Type != "" {
+		b.bType = bRaw.Type
+	} else if bRaw.Operation.Type != "" {
+		b.bType = bRaw.Operation.Type
+	}
+	if bRaw.Value != 0 {
+		b.value = bRaw.Value
+	} else if bRaw.Operation.Value != 0 {
+		b.value = bRaw.Operation.Value
+	}
+	if bRaw.ID != "" {
+		b.id = bRaw.ID
+	} else if bRaw.Operation.ID != "" {
+		b.id = bRaw.Operation.ID
+	}
+	if !bRaw.CreatedAt.isZero() {
+		b.createdAt = bRaw.CreatedAt
+	} else if !bRaw.Operation.CreatedAt.isZero() {
+		b.createdAt = bRaw.Operation.CreatedAt
+	}
 	return b
-}
-
-func (fields billingJSONFields) parseField(fieldName string, billingField interface{}) {
-	if data, err := fields.getByteField(fieldName); err == nil {
-		unmarshalValue(data, billingField)
-	}
-}
-
-func (fields billingJSONFields) getByteField(name string) ([]byte, error) {
-	if value, ok := fields[name]; ok {
-		bytes, err := json.Marshal(value)
-		if err != nil {
-			return nil, fmt.Errorf("get byte field: %w", err)
-		}
-		return bytes, nil
-	}
-	return nil, fmt.Errorf("get byte field: no such field: %s", name)
-}
-
-func unmarshalValue(data []byte, fieldType interface{}) {
-	if err := json.Unmarshal(data, fieldType); err != nil {
-		log.Println(err)
-	}
 }
 
 func unmarshalToString(data []byte) (string, error) {
 	var strType string
 	err := json.Unmarshal(data, &strType)
 	if err != nil {
-		return "", fmt.Errorf("unmarshalToString: %w", err)
+		return "", fmt.Errorf("%v: %w", ErrUnmarshalToString, err)
 	}
 	strType = strings.TrimSpace(strType)
 	return strType, nil
@@ -213,17 +275,17 @@ func unmarshalToNumber(data []byte, number interface{}) error {
 	case *int:
 	case *float64:
 	default:
-		return fmt.Errorf("unmarshallToNumber: passed value should be a pointer")
+		return fmt.Errorf("%v: %v", ErrUnmarshalToNumber, ErrPassedValueNotPointer)
 	}
 	if data[0] == QuoteByte {
 		err := json.Unmarshal(data[1:len(data)-1], number)
 		if err != nil {
-			return fmt.Errorf("unmarshallToNumber: %w", err)
+			return fmt.Errorf("%v: %w", ErrUnmarshalToNumber, err)
 		}
 	} else {
 		err := json.Unmarshal(data, number)
 		if err != nil {
-			return fmt.Errorf("unmarshallToNumber: %w", err)
+			return fmt.Errorf("%v: %w", ErrUnmarshalToNumber, err)
 		}
 	}
 	return nil
