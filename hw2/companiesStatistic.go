@@ -3,12 +3,11 @@ package main
 import (
 	"encoding/json"
 	"sort"
-	"strconv"
 	"time"
 )
 
 type invalidOperation struct {
-	ID   string
+	ID   interface{}
 	date time.Time
 }
 
@@ -25,13 +24,7 @@ type companyStatistic struct {
 
 func (o invalidOperation) MarshalJSON() ([]byte, error) {
 	var jsonData []byte
-	var err error
-	intID, err := strconv.Atoi(o.ID)
-	if err == nil {
-		jsonData, err = json.Marshal(intID)
-	} else {
-		jsonData, err = json.Marshal(o.ID)
-	}
+	jsonData, err := json.Marshal(o.ID)
 	return jsonData, err
 }
 
@@ -48,7 +41,7 @@ func (c *companyStatistic) sortInvalidOperations() {
 
 func (c *companyStatistic) updateStatistic(companyBilling billing) {
 	if companyBilling.invalid {
-		c.InvalidOperations = append(c.InvalidOperations, invalidOperation{ID: string(companyBilling.id)})
+		c.InvalidOperations = append(c.InvalidOperations, invalidOperation{ID: companyBilling.id})
 	} else {
 		c.ValidOperationsCount++
 		c.updateBalance(companyBilling)
@@ -57,25 +50,25 @@ func (c *companyStatistic) updateStatistic(companyBilling billing) {
 
 func (c *companyStatistic) updateBalance(companyBilling billing) {
 	switch companyBilling.bType {
-	case billingType(income), billingType(plus):
-		c.Balance.value += float64(companyBilling.value)
+	case income, plus:
+		c.Balance.value += companyBilling.value
 	default:
-		c.Balance.value -= float64(companyBilling.value)
+		c.Balance.value -= companyBilling.value
 	}
 }
 
 func calculateCompaniesStatistic(billingsStatistic billings) []companyStatistic {
 	companies := make(map[string]*companyStatistic)
 	for _, billing := range billingsStatistic {
-		if _, ok := companies[string(billing.company)]; !ok {
-			companies[string(billing.company)] = &companyStatistic{
-				Company:              string(billing.company),
+		if _, ok := companies[billing.company]; !ok {
+			companies[billing.company] = &companyStatistic{
+				Company:              billing.company,
 				ValidOperationsCount: 0,
 				Balance:              balance{value: 0},
 				InvalidOperations:    []invalidOperation{},
 			}
 		}
-		companies[string(billing.company)].updateStatistic(billing)
+		companies[billing.company].updateStatistic(billing)
 	}
 	return sortStatistic(companies)
 }

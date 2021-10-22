@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -29,6 +30,14 @@ const (
 
 var appEnvSingleInstance *appEnviroment
 
+var (
+	ErrSetupEnviroment            = errors.New("setup enviroment error")
+	ErrFilePathFlagEmpty          = errors.New("file-path flag value is empty")
+	ErrEnviromentVarEmpty         = errors.New("enviroment variable value is empty")
+	ErrStdinInvalidArgumentsCount = errors.New("invalid count of argument in STDIN")
+	ErrJSONFilePathIsEmpty        = errors.New("json file path is empty")
+)
+
 func (e *appEnviroment) init() {
 	e.getters = map[getterFunctionOrder]appEnviromentGetter{
 		setFlag:          e.setFlags,
@@ -47,14 +56,14 @@ func (e *appEnviroment) setupEnviroment() error {
 			return nil
 		}
 	}
-	return fmt.Errorf("setup eviroment error happened: %w", err)
+	return fmt.Errorf("%s: %w", ErrSetupEnviroment, err)
 }
 
 func (e *appEnviroment) setFlags() (filePath, error) {
 	fileFlag := flag.String(FilePathFlagName, "", FilePathFlagUsage)
 	flag.Parse()
 	if *fileFlag == "" {
-		return "", fmt.Errorf("file-path flag value is empty")
+		return "", ErrFilePathFlagEmpty
 	}
 	return *fileFlag, nil
 }
@@ -63,21 +72,21 @@ func (e *appEnviroment) setEnvVariables() (filePath, error) {
 	var value string
 	var ok bool
 	if value, ok = os.LookupEnv(FilePathEnvVariableName); !ok {
-		return "", fmt.Errorf("enviroment variable value is empty")
+		return "", ErrEnviromentVarEmpty
 	}
 	return value, nil
 }
 
 func (e *appEnviroment) setStdinVariables() (filePath, error) {
 	if flag.NArg() != 1 {
-		return "", fmt.Errorf("invalid count of argument in STDIN")
+		return "", ErrStdinInvalidArgumentsCount
 	}
 	return flag.Arg(0), nil
 }
 
 func (e appEnviroment) getJSONFilePath() (string, error) {
 	if e.pathToBillingFile == "" {
-		return "", fmt.Errorf("json file path is empty")
+		return "", ErrJSONFilePathIsEmpty
 	}
 	return e.pathToBillingFile, nil
 }

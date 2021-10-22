@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type billings []billing
@@ -42,22 +44,20 @@ func (r jsonReader) readBillings(billingsFilePath string) (billings, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrReadBillings, err)
 	}
-	var entries []interface{}
+	var entries []billingRaw
 	if err := json.Unmarshal(r.data, &entries); err != nil {
 		return billings{}, fmt.Errorf("%s: %w", ErrReadBillings, err)
 	}
 
 	var billings billings
 	for _, entry := range entries {
-		if val, ok := entry.(map[string]interface{}); ok {
-			billing, err := newBilling(val)
-			if err != nil {
-				if errors.Is(err, ErrSkipBilling) {
-					continue
-				}
-			}
-			billings = append(billings, billing)
+		unwrappedBillingRaw := entry.toUnwrappedBillingRaw()
+		validatedBilling, err := unwrappedBillingRaw.validate()
+		if err != nil {
+			log.Warn(fmt.Errorf("skip billing: %w", err))
+			continue
 		}
+		billings = append(billings, validatedBilling)
 	}
 
 	return billings, nil

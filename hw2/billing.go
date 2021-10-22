@@ -1,292 +1,169 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
-type validator interface {
-	isValid() error
-}
-
-type billingCompany string
-type billingType string
-type billingValue float64
-type billingID string
-type billingCreatedAt time.Time
-
 type operation struct {
-	Value     billingValue     `json:"value"`
-	Type      billingType      `json:"type"`
-	ID        billingID        `json:"id"`
-	CreatedAt billingCreatedAt `json:"created_at"`
+	ID        interface{} `json:"id,omitempty"`
+	Value     interface{} `json:"value,omitempty"`
+	Type      string      `json:"type,omitempty"`
+	CreatedAt string      `json:"created_at,omitempty"`
 }
 
 type billingRaw struct {
-	Company   billingCompany `json:"company"`
-	Operation operation      `json:"operation"`
+	Company   string    `json:"company,omitempty"`
+	Operation operation `json:"operation,omitempty"`
 	operation
 }
 
+type unwrappedBillingRaw struct {
+	company   string
+	id        interface{}
+	value     interface{}
+	bType     string
+	createdAt string
+}
+
 type billing struct {
-	company   billingCompany
-	bType     billingType
-	value     billingValue
-	id        billingID
-	createdAt billingCreatedAt
+	company   string
+	bType     string
+	value     float64
+	id        interface{}
+	createdAt time.Time
 	invalid   bool
 }
 
-type billingJSONFields map[string]interface{}
-type billingTypeValidValue string
-
 var (
-	ErrBillingCompany        = errors.New("billing company")
-	ErrBillingType           = errors.New("billing type")
-	ErrInvalidBillingType    = errors.New("invalid billing type passed")
-	ErrBillingValue          = errors.New("billing value")
-	ErrBillingID             = errors.New("billing ID")
-	ErrBillingCreatedAt      = errors.New("billing created at")
-	ErrJSONEmptyString       = errors.New("json: unable to unmarshal, value is empty string")
-	ErrSetupBillingField     = errors.New("setup billing field")
-	ErrUnmarshalToNumber     = errors.New("unmarshal to number")
-	ErrUnmarshalToString     = errors.New("unmarshal to string")
-	ErrPassedValueNotPointer = errors.New("passed value is not a pointer")
-	ErrSkipBilling           = errors.New("skip billing")
-	ErrInvalidBilling        = errors.New("invalid error")
+	ErrInvalidBillingType      = errors.New("invalid billing type")
+	ErrInvalidBillingValue     = errors.New("invalid billing value")
+	ErrInvalidBillingValueType = errors.New("invalid billing value type")
+	ErrUnknownBillingIDType    = errors.New("unknown billing id type")
+	ErrUnknownBillingTime      = errors.New("unknown type of billing created_at field")
+	ErrEmptyCompany            = errors.New("empty company")
+	ErrValidateParsedBilling   = errors.New("validate parsed billing")
 )
 
 const (
-	companyField   = "company"
-	typeField      = "type"
-	valueField     = "value"
-	idField        = "id"
-	createdAtFiled = "created_at"
-	operationField = "operation"
+	plus    = "+"
+	minus   = "-"
+	income  = "income"
+	outcome = "outcome"
 )
 
-const QuoteByte = 34
-
-const (
-	income  billingTypeValidValue = "income"
-	outcome billingTypeValidValue = "outcome"
-	plus    billingTypeValidValue = "+"
-	minus   billingTypeValidValue = "-"
-)
-
-func (b *billingCompany) UnmarshalJSON(data []byte) error {
-	strCompany, err := unmarshalToString(data)
-	if err != nil {
-		return fmt.Errorf("%s: %w", ErrBillingCompany, err)
+func (bRaw billingRaw) toUnwrappedBillingRaw() unwrappedBillingRaw {
+	var parsedB unwrappedBillingRaw
+	parsedB.company = bRaw.Company
+	if bRaw.ID != nil {
+		parsedB.id = bRaw.ID
+	} else if bRaw.Operation.ID != nil {
+		parsedB.id = bRaw.Operation.ID
 	}
-	if len(strCompany) == 0 {
-		return fmt.Errorf("%s: %w", ErrBillingCompany, ErrJSONEmptyString)
-	}
-	*b = billingCompany(strCompany)
-	return nil
-}
-
-func (b billingCompany) isValid() error {
-	if b == "" {
-		return ErrSkipBilling
-	}
-	return nil
-}
-
-func (b *billingCreatedAt) UnmarshalJSON(data []byte) error {
-	strDate, err := unmarshalToString(data)
-	if err != nil {
-		return fmt.Errorf("%s: %w", ErrBillingCreatedAt, err)
-	}
-	t, err := time.Parse(time.RFC3339, strDate)
-	if err != nil {
-		return fmt.Errorf("%s: %w", ErrBillingCreatedAt, err)
-	}
-	*b = billingCreatedAt(t)
-	return nil
-}
-
-func (b billingCreatedAt) isZero() bool {
-	return time.Time(b) == time.Time{}
-}
-
-func (b billingCreatedAt) isValid() error {
-	if b.isZero() {
-		return ErrSkipBilling
-	}
-	return nil
-}
-
-func (b *billingType) UnmarshalJSON(data []byte) error {
-	strType, err := unmarshalToString(data)
-	if err != nil {
-		return fmt.Errorf("%s: %w", ErrBillingType, err)
-	}
-	switch billingTypeValidValue(strType) {
-	case income, outcome, plus, minus:
-		*b = billingType(strType)
-	default:
-		return fmt.Errorf("%s: %w - %s", ErrBillingType, ErrInvalidBillingType, strType)
-	}
-	return nil
-}
-
-func (b billingType) isValid() error {
-	if b == "" {
-		return ErrInvalidBilling
-	}
-	return nil
-}
-
-func (b *billingValue) UnmarshalJSON(data []byte) error {
-	var floatValue float64
-	err := unmarshalToNumber(data, &floatValue)
-	if err != nil {
-		return fmt.Errorf("%s: %w", ErrBillingValue, err)
-	}
-	*b = billingValue(floatValue)
-	return nil
-}
-
-func (b billingValue) isValid() error {
-	if b == 0 {
-		return ErrInvalidBilling
-	}
-	return nil
-}
-
-func (b *billingID) UnmarshalJSON(data []byte) error {
-	var strID string
-	var intID int
-	if data[0] == QuoteByte {
-		err := json.Unmarshal(data, &strID)
-		if err != nil {
-			return fmt.Errorf("%s: %w", ErrBillingID, err)
-		}
-		*b = billingID(strID)
-	} else {
-		err := json.Unmarshal(data, &intID)
-		if err != nil {
-			return fmt.Errorf("%s: %w", ErrBillingID, err)
-		}
-		*b = billingID(strconv.Itoa(intID))
-	}
-	return nil
-}
-
-func (b billingID) isValid() error {
-	if b == "" {
-		return ErrSkipBilling
-	}
-	return nil
-}
-
-func newBilling(fields billingJSONFields) (billing, error) {
-	var bRaw billingRaw
-	fields.setupBillingField(companyField, &bRaw.Company)
-	fields.setupBillingField(valueField, &bRaw.Value)
-	fields.setupBillingField(typeField, &bRaw.Type)
-	fields.setupBillingField(idField, &bRaw.ID)
-	fields.setupBillingField(createdAtFiled, &bRaw.CreatedAt)
-	fields.setupBillingField(operationField, &bRaw.Operation)
-	b := bRaw.toBilling()
-	err := b.validate()
-	if err != nil {
-		errors.Is(err, ErrInvalidBilling)
-		b.invalid = true
-	}
-	return b, err
-}
-
-func (b billing) validate() error {
-	validators := []validator{b.company, b.bType, b.value, b.id, b.createdAt}
-	var lastError error
-	for _, val := range validators {
-		if err := val.isValid(); err != nil {
-			switch err {
-			case ErrSkipBilling:
-				return err
-			case ErrInvalidBilling:
-				lastError = err
-			}
-		}
-	}
-	return lastError
-}
-
-func (fields billingJSONFields) setupBillingField(fieldName string, billingField interface{}) {
-	val, ok := fields[fieldName]
-	if !ok {
-		return
-	}
-	data, err := json.Marshal(val)
-	if err != nil {
-		log.Warn(fmt.Errorf("%v: %w", ErrSetupBillingField, err))
-	}
-	if err := json.Unmarshal(data, billingField); err != nil {
-		log.Warn(fmt.Errorf("%v: %w", ErrSetupBillingField, err))
-	}
-}
-
-func (bRaw billingRaw) toBilling() billing {
-	var b billing
-	b.company = bRaw.Company
 	if bRaw.Type != "" {
-		b.bType = bRaw.Type
+		parsedB.bType = bRaw.Type
 	} else if bRaw.Operation.Type != "" {
-		b.bType = bRaw.Operation.Type
+		parsedB.bType = bRaw.Operation.Type
 	}
-	if bRaw.Value != 0 {
-		b.value = bRaw.Value
-	} else if bRaw.Operation.Value != 0 {
-		b.value = bRaw.Operation.Value
+	if bRaw.Value != nil {
+		parsedB.value = bRaw.Value
+	} else if bRaw.Operation.Value != nil {
+		parsedB.value = bRaw.Operation.Value
 	}
-	if bRaw.ID != "" {
-		b.id = bRaw.ID
-	} else if bRaw.Operation.ID != "" {
-		b.id = bRaw.Operation.ID
+	if bRaw.CreatedAt != "" {
+		parsedB.createdAt = bRaw.CreatedAt
+	} else if bRaw.Operation.CreatedAt != "" {
+		parsedB.createdAt = bRaw.Operation.CreatedAt
 	}
-	if !bRaw.CreatedAt.isZero() {
-		b.createdAt = bRaw.CreatedAt
-	} else if !bRaw.Operation.CreatedAt.isZero() {
-		b.createdAt = bRaw.Operation.CreatedAt
-	}
-	return b
+	return parsedB
 }
 
-func unmarshalToString(data []byte) (string, error) {
-	var strType string
-	err := json.Unmarshal(data, &strType)
-	if err != nil {
-		return "", fmt.Errorf("%v: %w", ErrUnmarshalToString, err)
+func (b unwrappedBillingRaw) validateCompany() (string, error) {
+	if b.company == "" {
+		return "", ErrEmptyCompany
 	}
-	strType = strings.TrimSpace(strType)
-	return strType, nil
+	return b.company, nil
 }
 
-func unmarshalToNumber(data []byte, number interface{}) error {
-	switch number.(type) {
-	case *int:
-	case *float64:
+func (b unwrappedBillingRaw) validateID() (interface{}, error) {
+	switch id := b.id.(type) {
+	case string:
+		return id, nil
+	case float64:
+		if id == float64(int(id)) {
+			return id, nil
+		}
+		return nil, ErrUnknownBillingIDType
 	default:
-		return fmt.Errorf("%v: %v", ErrUnmarshalToNumber, ErrPassedValueNotPointer)
+		return nil, ErrUnknownBillingIDType
 	}
-	if data[0] == QuoteByte {
-		err := json.Unmarshal(data[1:len(data)-1], number)
-		if err != nil {
-			return fmt.Errorf("%v: %w", ErrUnmarshalToNumber, err)
-		}
-	} else {
-		err := json.Unmarshal(data, number)
-		if err != nil {
-			return fmt.Errorf("%v: %w", ErrUnmarshalToNumber, err)
-		}
+}
+
+func (b unwrappedBillingRaw) validateType() (string, error) {
+	switch b.bType {
+	case plus, minus, income, outcome:
+		return b.bType, nil
+	default:
+		return "", ErrInvalidBillingType
 	}
-	return nil
+}
+
+func (b unwrappedBillingRaw) validateTime() (time.Time, error) {
+	t, err := time.Parse(time.RFC3339, b.createdAt)
+	if err != nil {
+		return time.Time{}, ErrUnknownBillingTime
+	}
+	return t, nil
+}
+
+func (b unwrappedBillingRaw) validateValue() (float64, error) {
+	switch val := b.value.(type) {
+	case string:
+		floatVal, err := strconv.ParseFloat(val, 64)
+		if err != nil {
+			return 0, ErrInvalidBillingValue
+		}
+		return floatVal, nil
+	case float64:
+		return val, nil
+	default:
+		return 0, ErrInvalidBillingValueType
+	}
+}
+
+func (b unwrappedBillingRaw) validate() (billing, error) {
+	var returnBill billing
+	company, err := b.validateCompany()
+	if err != nil {
+		return billing{}, fmt.Errorf("%v: %w", ErrValidateParsedBilling, err)
+	}
+	returnBill.company = company
+
+	id, err := b.validateID()
+	if err != nil {
+		return billing{}, fmt.Errorf("%v: %w", ErrValidateParsedBilling, err)
+	}
+	returnBill.id = id
+
+	createdAt, err := b.validateTime()
+	if err != nil {
+		return billing{}, fmt.Errorf("%v: %w", ErrValidateParsedBilling, err)
+	}
+	returnBill.createdAt = createdAt
+
+	value, err := b.validateValue()
+	if err != nil {
+		returnBill.invalid = true
+	}
+	returnBill.value = value
+
+	bType, err := b.validateType()
+	if err != nil {
+		returnBill.invalid = true
+	}
+	returnBill.bType = bType
+
+	return returnBill, nil
 }

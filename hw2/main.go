@@ -13,6 +13,8 @@ var (
 	ErrGetPath           = errors.New("get path")
 	ErrSetEnviroment     = errors.New("set enviroment")
 	ErrGetBillingEntries = errors.New("get billing entries")
+	ErrMarshalJSON       = errors.New("marshal json")
+	ErrWriteFile         = errors.New("write file")
 )
 
 func setEnviroment() (*appEnviroment, error) {
@@ -60,10 +62,10 @@ func main() {
 	statistic := calculateCompaniesStatistic(billingEntries)
 	file, err := json.MarshalIndent(statistic, "", "\t")
 	if err != nil {
-		log.Println("marshalJson: ", err)
+		log.Printf("%s: %s", ErrMarshalJSON, err)
 	}
 	err = ioutil.WriteFile("out.json", file, 0644)
 	if err != nil {
-		log.Println("writeFile: ", err)
+		log.Printf("%v: %s", ErrWriteFile, err)
 	}
 }
