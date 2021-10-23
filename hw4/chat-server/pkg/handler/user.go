@@ -3,9 +3,10 @@ package handler
 import (
 	"chat/entities"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
 func (h *Handler) sendMessageToUserByID(c *gin.Context) {

@@ -20,5 +20,3 @@ func (um *UserMemoryDB) SendMessageToUserByID(userID int, message entities.Messa
 func (um *UserMemoryDB) GetUserMessages(userID int) ([]entities.Message, error) {
 	return um.db.GetUserMessages(userID)
 }
-
-

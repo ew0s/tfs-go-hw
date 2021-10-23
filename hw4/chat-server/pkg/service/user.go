@@ -20,4 +20,3 @@ func (s *UserService) SendMessageToUserByID(userID int, message entities.Message
 func (s *UserService) GetUserMessages(userID int) ([]entities.Message, error) {
 	return s.repo.GetUserMessages(userID)
 }
-

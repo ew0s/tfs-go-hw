@@ -6,8 +6,9 @@ import (
 	"crypto/sha1"
 	"errors"
 	"fmt"
-	"github.com/golang-jwt/jwt"
 	"time"
+
+	"github.com/golang-jwt/jwt"
 )
 
 const (

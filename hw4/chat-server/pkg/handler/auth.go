@@ -2,8 +2,9 @@ package handler
 
 import (
 	"chat/entities"
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 func (h *Handler) signUp(c *gin.Context) {
