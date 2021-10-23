@@ -2,6 +2,7 @@ package handler
 
 import (
 	"chat/pkg/service"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,6 +15,7 @@ func NewHandler(services *service.Service) *Handler {
 }
 
 func (h *Handler) InitRoutes() *gin.Engine {
+	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
