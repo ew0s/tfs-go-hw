@@ -10,7 +10,7 @@ import (
 )
 
 func (h *Handler) sendMessageToUserByID(c *gin.Context) {
-	id, err := getUserId(c)
+	id, err := getUserID(c)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
@@ -39,7 +39,7 @@ func (h *Handler) sendMessageToUserByID(c *gin.Context) {
 }
 
 func (h *Handler) getUserMessages(c *gin.Context) {
-	id, err := getUserId(c)
+	id, err := getUserID(c)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return

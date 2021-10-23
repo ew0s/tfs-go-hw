@@ -8,7 +8,7 @@ import (
 )
 
 func (h *Handler) createGlobalMessage(c *gin.Context) {
-	id, err := getUserId(c)
+	id, err := getUserID(c)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return

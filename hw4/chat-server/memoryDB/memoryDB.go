@@ -19,7 +19,7 @@ type DB struct {
 	usersUsernames      map[username]userID
 	usersMessages       map[userID][]entities.Message
 
-	usersIdCount int
+	usersIDCount int
 }
 
 var (
@@ -33,7 +33,7 @@ func NewMemoryDB() (*DB, error) {
 		users:          map[userID]entities.User{},
 		usersUsernames: map[username]userID{},
 		usersMessages:  map[userID][]entities.Message{},
-		usersIdCount:   1,
+		usersIDCount:   1,
 	}
 	return &db, nil
 }
@@ -89,10 +89,10 @@ func (db *DB) insertUser(user entities.User) (int, error) {
 		return 0, ErrUserAlreadyInDB
 	}
 
-	user.ID = db.usersIdCount
+	user.ID = db.usersIDCount
 	db.users[userID(user.ID)] = user
 	db.usersUsernames[username(user.Username)] = userID(user.ID)
-	db.usersIdCount++
+	db.usersIDCount++
 	return user.ID, nil
 }
 
