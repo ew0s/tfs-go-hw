@@ -3,16 +3,21 @@ package memoryDB
 import (
 	"chat/entities"
 	"errors"
+	"sync"
 )
 
 type userID int
 type username string
 
 type DB struct {
-	users          map[userID]entities.User
-	globalMessages []entities.Message
-	usersUsernames map[username]userID
-	usersMessages  map[userID][]entities.Message
+	usersMutex          sync.RWMutex
+	globalMessagesMutex sync.RWMutex
+	usersUsernamesMutex sync.RWMutex
+	usersMessagesMutex  sync.RWMutex
+	users               map[userID]entities.User
+	globalMessages      []entities.Message
+	usersUsernames      map[username]userID
+	usersMessages       map[userID][]entities.Message
 
 	usersIdCount int
 }
@@ -34,18 +39,64 @@ func NewMemoryDB() (*DB, error) {
 }
 
 func (db *DB) InsertUser(user entities.User) (int, error) {
+	db.usersMutex.Lock()
+	db.usersUsernamesMutex.Lock()
+	defer db.usersMutex.Unlock()
+	defer db.usersUsernamesMutex.Unlock()
+	return db.insertUser(user)
+}
+
+func (db *DB) InsertMessageToGlobalChat(usrID int, message entities.Message) error {
+	db.usersMutex.RLock()
+	db.globalMessagesMutex.Lock()
+	defer db.usersMutex.RUnlock()
+	defer db.globalMessagesMutex.Unlock()
+	return db.insertMessageToGlobalChat(usrID, message)
+}
+
+func (db *DB) InsertMessageForUser(usrID int, message entities.Message) error {
+	db.usersMutex.RLock()
+	db.usersMessagesMutex.Lock()
+	defer db.usersMutex.RUnlock()
+	defer db.usersMessagesMutex.Unlock()
+	return db.insertMessageForUser(usrID, message)
+}
+
+func (db *DB) GetMessagesFromGlobalChat() []entities.Message {
+	db.globalMessagesMutex.RLock()
+	defer db.globalMessagesMutex.RUnlock()
+	return db.getMessagesFromGlobalChat()
+}
+
+func (db *DB) GetUserMessages(usrID int) ([]entities.Message, error) {
+	db.usersMutex.RLock()
+	db.usersMessagesMutex.RLock()
+	defer db.usersMutex.RUnlock()
+	defer db.usersMessagesMutex.RUnlock()
+	return db.getUserMessages(usrID)
+}
+
+func (db *DB) GetUser(usrName string, password string) (entities.User, error) {
+	db.usersMutex.RLock()
+	db.usersUsernamesMutex.RLock()
+	defer db.usersMutex.RUnlock()
+	defer db.usersUsernamesMutex.RUnlock()
+	return db.getUser(usrName, password)
+}
+
+func (db *DB) insertUser(user entities.User) (int, error) {
 	if _, ok := db.usersUsernames[username(user.Username)]; ok {
 		return 0, ErrUserAlreadyInDB
 	}
 
 	user.ID = db.usersIdCount
 	db.users[userID(user.ID)] = user
-	db.insertUsersUsernames(username(user.Username), userID(user.ID))
+	db.usersUsernames[username(user.Username)] = userID(user.ID)
 	db.usersIdCount++
 	return user.ID, nil
 }
 
-func (db *DB) InsertMessageToGlobalChat(usrID int, message entities.Message) error {
+func (db *DB) insertMessageToGlobalChat(usrID int, message entities.Message) error {
 	if _, ok := db.users[userID(usrID)]; !ok {
 		return ErrNotFoundUser
 	}
@@ -53,11 +104,11 @@ func (db *DB) InsertMessageToGlobalChat(usrID int, message entities.Message) err
 	return nil
 }
 
-func (db *DB) GetMessagesFromGlobalChat() []entities.Message {
+func (db *DB) getMessagesFromGlobalChat() []entities.Message {
 	return db.globalMessages
 }
 
-func (db *DB) InsertMessageForUser(usrID int, message entities.Message) error {
+func (db *DB) insertMessageForUser(usrID int, message entities.Message) error {
 	_, ok := db.users[userID(usrID)]
 	if !ok {
 		return ErrNotFoundUser
@@ -66,7 +117,7 @@ func (db *DB) InsertMessageForUser(usrID int, message entities.Message) error {
 	return nil
 }
 
-func (db *DB) GetUserMessages(usrID int) ([]entities.Message, error) {
+func (db *DB) getUserMessages(usrID int) ([]entities.Message, error) {
 	_, ok := db.users[userID(usrID)]
 	if !ok {
 		return nil, ErrNotFoundUser
@@ -74,7 +125,7 @@ func (db *DB) GetUserMessages(usrID int) ([]entities.Message, error) {
 	return db.usersMessages[userID(usrID)], nil
 }
 
-func (db *DB) GetUser(usrName string, password string) (entities.User, error) {
+func (db *DB) getUser(usrName string, password string) (entities.User, error) {
 	usrID, err := db.getUserIDByUsername(username(usrName))
 	if err != nil {
 		return entities.User{}, err
@@ -94,8 +145,4 @@ func (db *DB) getUserIDByUsername(usrName username) (userID, error) {
 		return 0, ErrNotFoundUser
 	}
 	return usrID, nil
-}
-
-func (db *DB) insertUsersUsernames(usrName username, usrID userID) {
-	db.usersUsernames[usrName] = usrID
 }
