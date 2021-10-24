@@ -48,6 +48,7 @@ func (h *Handler) getUserMessages(c *gin.Context) {
 	messages, err := h.services.User.GetUserMessages(id)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	c.JSON(http.StatusOK, messages)
