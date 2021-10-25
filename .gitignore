@@ -20,3 +20,6 @@
 
 # JetBrains Goland
 .idea
+
+# Test Files
+TestFiles

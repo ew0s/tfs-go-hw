@@ -1,0 +1,24 @@
+[
+	{
+		"company": "hoofs",
+		"valid_operations_count": 16,
+		"balance": 1816,
+		"invalid_operations": [
+			827,
+			836
+		]
+	},
+	{
+		"company": "horns",
+		"valid_operations_count": 11,
+		"balance": -27,
+		"invalid_operations": [
+			839
+		]
+	},
+	{
+		"company": "tails",
+		"valid_operations_count": 1,
+		"balance": -438
+	}
+]
