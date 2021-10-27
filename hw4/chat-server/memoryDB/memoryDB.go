@@ -3,146 +3,193 @@ package memoryDB
 import (
 	"chat/entities"
 	"errors"
+	"fmt"
 	"sync"
 )
 
 type userID int
 type username string
 
+type dbUsers struct {
+	sync.RWMutex
+	data map[userID]entities.User
+}
+
+type dbGlobalMessages struct {
+	sync.RWMutex
+	data []entities.Message
+}
+
+type dbUsersUsernames struct {
+	sync.RWMutex
+	data map[username]userID
+}
+
+type dbUsersMessages struct {
+	sync.RWMutex
+	data map[userID][]entities.Message
+}
+
 type DB struct {
-	usersMutex          sync.RWMutex
-	globalMessagesMutex sync.RWMutex
-	usersUsernamesMutex sync.RWMutex
-	usersMessagesMutex  sync.RWMutex
-	users               map[userID]entities.User
-	globalMessages      []entities.Message
-	usersUsernames      map[username]userID
-	usersMessages       map[userID][]entities.Message
+	users          dbUsers
+	globalMessages dbGlobalMessages
+	usersUsernames dbUsersUsernames
+	usersMessages  dbUsersMessages
 
 	usersIDCount int
 }
 
 var (
-	ErrUserAlreadyInDB = errors.New("user already in database")
-	ErrNotFoundUser    = errors.New("user not found")
-	ErrInvalidPassword = errors.New("invalid password")
+	ErrInsertUser                = errors.New("insert user")
+	ErrInsertMessageToGlobalChat = errors.New("inset message to global chat")
+	ErrUserAlreadyInDB           = errors.New("user already in database")
+	ErrInsertMessageForUser      = errors.New("insert message for user")
+	ErrGetUserMessages           = errors.New("get user messages")
+	ErrGetUser                   = errors.New("get user")
+	ErrNotFoundUser              = errors.New("user not found")
+	ErrUsernameNotFound          = errors.New("username not found")
+	ErrUsernameAlreadyInDB       = errors.New("username already in db")
+	ErrInvalidPassword           = errors.New("invalid password")
 )
 
 func NewMemoryDB() (*DB, error) {
 	db := DB{
-		users:          map[userID]entities.User{},
-		usersUsernames: map[username]userID{},
-		usersMessages:  map[userID][]entities.Message{},
-		usersIDCount:   1,
+		users: dbUsers{
+			data: map[userID]entities.User{},
+		},
+		usersUsernames: dbUsersUsernames{
+			data: map[username]userID{},
+		},
+		usersMessages: dbUsersMessages{
+			data: map[userID][]entities.Message{},
+		},
+		usersIDCount: 1,
 	}
 	return &db, nil
 }
 
 func (db *DB) InsertUser(user entities.User) (int, error) {
-	db.usersMutex.Lock()
-	db.usersUsernamesMutex.Lock()
-	defer db.usersMutex.Unlock()
-	defer db.usersUsernamesMutex.Unlock()
-	return db.insertUser(user)
-}
-
-func (db *DB) InsertMessageToGlobalChat(usrID int, message entities.Message) error {
-	db.usersMutex.RLock()
-	db.globalMessagesMutex.Lock()
-	defer db.usersMutex.RUnlock()
-	defer db.globalMessagesMutex.Unlock()
-	return db.insertMessageToGlobalChat(usrID, message)
-}
-
-func (db *DB) InsertMessageForUser(usrID int, message entities.Message) error {
-	db.usersMutex.RLock()
-	db.usersMessagesMutex.Lock()
-	defer db.usersMutex.RUnlock()
-	defer db.usersMessagesMutex.Unlock()
-	return db.insertMessageForUser(usrID, message)
-}
-
-func (db *DB) GetMessagesFromGlobalChat() []entities.Message {
-	db.globalMessagesMutex.RLock()
-	defer db.globalMessagesMutex.RUnlock()
-	return db.getMessagesFromGlobalChat()
-}
-
-func (db *DB) GetUserMessages(usrID int) ([]entities.Message, error) {
-	db.usersMutex.RLock()
-	db.usersMessagesMutex.RLock()
-	defer db.usersMutex.RUnlock()
-	defer db.usersMessagesMutex.RUnlock()
-	return db.getUserMessages(usrID)
-}
-
-func (db *DB) GetUser(usrName string, password string) (entities.User, error) {
-	db.usersMutex.RLock()
-	db.usersUsernamesMutex.RLock()
-	defer db.usersMutex.RUnlock()
-	defer db.usersUsernamesMutex.RUnlock()
-	return db.getUser(usrName, password)
-}
-
-func (db *DB) insertUser(user entities.User) (int, error) {
-	if _, ok := db.usersUsernames[username(user.Username)]; ok {
-		return 0, ErrUserAlreadyInDB
+	user.ID = db.usersIDCount
+	if err := db.usersUsernames.insert(username(user.Username), userID(user.ID)); err != nil {
+		return 0, fmt.Errorf("%s: %w", ErrInsertUser, err)
+	}
+	if err := db.users.insert(user); err != nil {
+		return 0, fmt.Errorf("%s: %w", ErrInsertUser, err)
 	}
 
-	user.ID = db.usersIDCount
-	db.users[userID(user.ID)] = user
-	db.usersUsernames[username(user.Username)] = userID(user.ID)
 	db.usersIDCount++
 	return user.ID, nil
 }
 
-func (db *DB) insertMessageToGlobalChat(usrID int, message entities.Message) error {
-	if _, ok := db.users[userID(usrID)]; !ok {
-		return ErrNotFoundUser
+func (db *DB) InsertMessageToGlobalChat(usrID int, message entities.Message) error {
+	if _, err := db.users.get(userID(usrID)); err != nil {
+		return fmt.Errorf("%s: %w", ErrInsertMessageToGlobalChat, err)
 	}
-	db.globalMessages = append(db.globalMessages, message)
+	db.globalMessages.insert(message)
 	return nil
 }
 
-func (db *DB) getMessagesFromGlobalChat() []entities.Message {
-	return db.globalMessages
+func (db *DB) GetMessagesFromGlobalChat() []entities.Message {
+	return db.globalMessages.get()
 }
 
-func (db *DB) insertMessageForUser(usrID int, message entities.Message) error {
-	_, ok := db.users[userID(usrID)]
-	if !ok {
-		return ErrNotFoundUser
+func (db *DB) InsertMessageForUser(usrID int, message entities.Message) error {
+	if _, err := db.users.get(userID(usrID)); err != nil {
+		return fmt.Errorf("%s: %w", ErrInsertMessageForUser, err)
 	}
-	db.usersMessages[userID(usrID)] = append(db.usersMessages[userID(usrID)], message)
+	db.usersMessages.insert(userID(usrID), message)
 	return nil
 }
 
-func (db *DB) getUserMessages(usrID int) ([]entities.Message, error) {
-	_, ok := db.users[userID(usrID)]
-	if !ok {
-		return nil, ErrNotFoundUser
+func (db *DB) GetUserMessages(usrID int) ([]entities.Message, error) {
+	if _, err := db.users.get(userID(usrID)); err != nil {
+		return nil, fmt.Errorf("%s: %w", ErrGetUserMessages, err)
 	}
-	return db.usersMessages[userID(usrID)], nil
+	return db.usersMessages.get(userID(usrID)), nil
 }
 
-func (db *DB) getUser(usrName string, password string) (entities.User, error) {
-	usrID, err := db.getUserIDByUsername(username(usrName))
+func (db *DB) GetUser(usrName string, password string) (entities.User, error) {
+	usrID, err := db.usersUsernames.get(username(usrName))
 	if err != nil {
-		return entities.User{}, err
+		return entities.User{}, fmt.Errorf("%s: %w", ErrGetUser, err)
 	}
-	user, ok := db.users[usrID]
-	if ok && user.Password == password {
+	user, err := db.users.get(usrID)
+	if err != nil {
+		return entities.User{}, fmt.Errorf("%s: %w", ErrGetUser, err)
+	}
+	if user.Password == password {
 		return user, nil
-	} else if ok && user.Password != password {
-		return entities.User{}, ErrInvalidPassword
 	}
-	return entities.User{}, ErrNotFoundUser
+	return entities.User{}, fmt.Errorf("%s: %s", ErrGetUser, ErrInvalidPassword)
 }
 
-func (db *DB) getUserIDByUsername(usrName username) (userID, error) {
-	usrID, ok := db.usersUsernames[usrName]
+func (u *dbUsers) insert(user entities.User) error {
+	u.Lock()
+	defer u.Unlock()
+	if _, ok := u.data[userID(user.ID)]; ok {
+		return ErrUserAlreadyInDB
+	}
+	u.data[userID(user.ID)] = user
+	return nil
+}
+
+func (u *dbUsers) get(usrID userID) (entities.User, error) {
+	u.RLock()
+	defer u.RUnlock()
+	usr, ok := u.data[usrID]
 	if !ok {
-		return 0, ErrNotFoundUser
+		return entities.User{}, ErrNotFoundUser
+	}
+	return usr, nil
+}
+
+func (m *dbGlobalMessages) insert(message entities.Message) {
+	m.Lock()
+	defer m.Unlock()
+	m.data = append(m.data, message)
+}
+
+func (m *dbGlobalMessages) get() []entities.Message {
+	m.RLock()
+	defer m.RUnlock()
+	messagesCopy := make([]entities.Message, len(m.data))
+	copy(messagesCopy, m.data)
+	return messagesCopy
+}
+
+func (u *dbUsersUsernames) insert(usrName username, usrID userID) error {
+	u.Lock()
+	defer u.Unlock()
+	if _, ok := u.data[usrName]; ok {
+		return ErrUsernameAlreadyInDB
+	}
+	u.data[usrName] = usrID
+	return nil
+}
+
+func (u *dbUsersUsernames) get(usrName username) (userID, error) {
+	u.RLock()
+	defer u.RUnlock()
+	usrID, ok := u.data[usrName]
+	if !ok {
+		return 0, ErrUsernameNotFound
 	}
 	return usrID, nil
+}
+
+func (m *dbUsersMessages) insert(usrID userID, message entities.Message) {
+	m.Lock()
+	defer m.Unlock()
+	m.data[usrID] = append(m.data[usrID], message)
+}
+
+func (m *dbUsersMessages) get(usrID userID) []entities.Message {
+	m.RLock()
+	defer m.RUnlock()
+	if val, ok := m.data[usrID]; ok && val != nil {
+		messagesCopy := make([]entities.Message, len(val))
+		copy(messagesCopy, val)
+		return messagesCopy
+	}
+	return []entities.Message{}
 }
