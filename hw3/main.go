@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"hw-async/domain"
 	"hw-async/generator"
 	"os"
 	"os/signal"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -18,21 +19,14 @@ var (
 	ErrWriteCandleToFile = errors.New("writeCandleToFile")
 )
 
-const (
-	candle1mFileName  = "candle1m.csv"
-	candle2mFileName  = "candle2m.csv"
-	candle10mFileName = "candle10m.csv"
-)
-
 var tickers = []string{"AAPL", "SBER", "NVDA", "TSLA"}
 
 func main() {
-	signals := make(chan os.Signal)
+	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt)
 
 	logger := log.New()
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	go func() {
 		osCall := <-signals
@@ -48,48 +42,50 @@ func main() {
 	})
 
 	logger.Info("start prices generator...")
-	prices := pg.Prices(ctx)
+	startPipeline(ctx, pg.Prices(ctx))
+	logger.Info("program successfully finished.")
+}
 
+func startPipeline(ctx context.Context, prices <-chan domain.Price) {
 	wg := sync.WaitGroup{}
 	wg.Add(3)
-	generate10mCandles(ctx, &wg,
-		generate2mCandles(ctx, &wg,
+	generate10mCandles(&wg,
+		generate2mCandles(&wg,
 			generate1mCandles(ctx, &wg, prices)))
 	wg.Wait()
-	logger.Info("program successfully finished.")
 }
 
 func generate1mCandles(ctx context.Context, wg *sync.WaitGroup, inPrices <-chan domain.Price) <-chan domain.Candle {
 	outCandles := make(chan domain.Candle)
+	writerChan := make(chan domain.Candle)
 	candleMap := domain.CandleMap{}
 
 	go func() {
-		defer close(outCandles)
 		defer wg.Done()
+		defer close(outCandles)
+		defer close(writerChan)
 
-		file, err := createFile(domain.CandlePeriod1m)
-		if err != nil {
-			log.Error(err)
-		}
-		defer file.Close()
+		go fileWriter(writerChan, domain.CandlePeriod1m)
 
 		for {
 			select {
 			case price := <-inPrices:
 				log.Info(price)
-				closedCandle, err := candleMap.UpdateFromPrice(price, domain.CandlePeriod1m)
+				newCandle, err := domain.NewCandleFromPrice(price, domain.CandlePeriod1m)
+				if err != nil {
+					log.Warn(err)
+					continue
+				}
+				closedCandle, err := candleMap.Update(newCandle, domain.CandlePeriod1m)
 				if errors.Is(err, domain.ErrUpdateCandleMismatchedPeriod) {
 					outCandles <- closedCandle
-					if err := writeToFile(file, closedCandle); err != nil {
-						log.Warningln(err)
-					}
+					writerChan <- closedCandle
 				}
 			case <-ctx.Done():
-				lastCandles := candleMap.FlushMap()
-				for _, val := range lastCandles {
-					if err := writeToFile(file, val); err != nil {
-						log.Warningln(err)
-					}
+				candles := candleMap.FlushMap()
+				for _, val := range candles {
+					outCandles <- val
+					writerChan <- val
 				}
 				return
 			}
@@ -99,88 +95,78 @@ func generate1mCandles(ctx context.Context, wg *sync.WaitGroup, inPrices <-chan 
 	return outCandles
 }
 
-func generate2mCandles(ctx context.Context, wg *sync.WaitGroup, inCandles <-chan domain.Candle) <-chan domain.Candle {
+func generate2mCandles(wg *sync.WaitGroup, inCandles <-chan domain.Candle) <-chan domain.Candle {
+	writerChan := make(chan domain.Candle)
 	outCandles := make(chan domain.Candle)
 	candleMap := domain.CandleMap{}
 
 	go func() {
-		defer close(outCandles)
 		defer wg.Done()
+		defer close(outCandles)
+		defer close(writerChan)
 
-		file, err := createFile(domain.CandlePeriod2m)
-		if err != nil {
-			log.Error(err)
-		}
-		defer file.Close()
+		go fileWriter(writerChan, domain.CandlePeriod2m)
 
-		for {
-			select {
-			case candle := <-inCandles:
-				closedCandle, err := candleMap.UpdateFromCandle(candle, domain.CandlePeriod2m)
-				if errors.Is(err, domain.ErrUpdateCandleMismatchedPeriod) {
-					outCandles <- closedCandle
-					if err := writeToFile(file, closedCandle); err != nil {
-						log.Warningln(err)
-					}
-				}
-			case <-ctx.Done():
-				candles := candleMap.FlushMap()
-				for _, val := range candles {
-					if err := writeToFile(file, val); err != nil {
-						log.Warningln(err)
-					}
-				}
-				return
+		for candle := range inCandles {
+			closedCandle, err := candleMap.Update(candle, domain.CandlePeriod2m)
+			if errors.Is(err, domain.ErrUpdateCandleMismatchedPeriod) {
+				outCandles <- closedCandle
+				writerChan <- closedCandle
 			}
+		}
+
+		candles := candleMap.FlushMap()
+		for _, val := range candles {
+			outCandles <- val
+			writerChan <- val
 		}
 	}()
 
 	return outCandles
 }
 
-func generate10mCandles(ctx context.Context, wg *sync.WaitGroup, inCandles <-chan domain.Candle) {
+func generate10mCandles(wg *sync.WaitGroup, inCandles <-chan domain.Candle) {
+	writerChan := make(chan domain.Candle)
 	candleMap := domain.CandleMap{}
 
 	go func() {
 		defer wg.Done()
+		defer close(writerChan)
 
-		file, err := createFile(domain.CandlePeriod10m)
-		if err != nil {
-			log.Error(err)
-		}
-		defer file.Close()
+		go fileWriter(writerChan, domain.CandlePeriod10m)
 
-		for {
-			select {
-			case candle := <-inCandles:
-				closedCandle, err := candleMap.UpdateFromCandle(candle, domain.CandlePeriod10m)
-				if errors.Is(err, domain.ErrUpdateCandleMismatchedPeriod) {
-					if err := writeToFile(file, closedCandle); err != nil {
-						log.Warningln(err)
-					}
-				}
-			case <-ctx.Done():
-				candles := candleMap.FlushMap()
-				for _, val := range candles {
-					if err := writeToFile(file, val); err != nil {
-						log.Warningln(err)
-					}
-				}
-				return
+		for candle := range inCandles {
+			closedCandle, err := candleMap.Update(candle, domain.CandlePeriod10m)
+			if errors.Is(err, domain.ErrUpdateCandleMismatchedPeriod) {
+				writerChan <- closedCandle
 			}
 		}
+
+		candles := candleMap.FlushMap()
+		for _, val := range candles {
+			writerChan <- val
+		}
 	}()
+}
+
+func fileWriter(candles <-chan domain.Candle, period domain.CandlePeriod) {
+	file, err := createFile(period)
+	if err != nil {
+		log.Error(err)
+	}
+	defer file.Close()
+	for candle := range candles {
+		if err := writeToFile(file, candle); err != nil {
+			log.Warn(err)
+		}
+	}
 }
 
 func createFile(period domain.CandlePeriod) (*os.File, error) {
 	var fileName string
 	switch period {
-	case domain.CandlePeriod1m:
-		fileName = candle1mFileName
-	case domain.CandlePeriod2m:
-		fileName = candle2mFileName
-	case domain.CandlePeriod10m:
-		fileName = candle10mFileName
+	case domain.CandlePeriod1m, domain.CandlePeriod2m, domain.CandlePeriod10m:
+		fileName = fmt.Sprintf("candles_%s.csv", period)
 	default:
 		return nil, fmt.Errorf("%v: %w", ErrCreateFile, domain.ErrUnknownPeriod)
 	}

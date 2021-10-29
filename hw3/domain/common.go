@@ -13,13 +13,15 @@ type Price struct {
 	TS     time.Time
 }
 
-var (
-	ErrUnknownPeriod                = errors.New("unknown period")
-	ErrCreateNewCandle              = errors.New("new candle")
-	ErrUpdateCandlesMap             = errors.New("update candles map")
-	ErrUpdateCandle                 = errors.New("update candle")
-	ErrUpdateCandleMismatchedPeriod = errors.New("update candle: mismatch period")
-)
+type Candle struct {
+	Ticker string
+	Period CandlePeriod // Интервал
+	Open   float64      // Цена открытия
+	High   float64      // Максимальная цена
+	Low    float64      // Минимальная цена
+	Close  float64      // Цена закрытие
+	TS     time.Time    // Время начала интервала
+}
 
 type CandlePeriod string
 type CandleMap map[string]*Candle
@@ -28,6 +30,14 @@ const (
 	CandlePeriod1m  CandlePeriod = "1m"
 	CandlePeriod2m  CandlePeriod = "2m"
 	CandlePeriod10m CandlePeriod = "10m"
+)
+
+var (
+	ErrUnknownPeriod                = errors.New("unknown period")
+	ErrCreateNewCandle              = errors.New("new candle")
+	ErrUpdateCandlesMap             = errors.New("update candles map")
+	ErrUpdateCandle                 = errors.New("update candle")
+	ErrUpdateCandleMismatchedPeriod = errors.New("update candle: mismatch period")
 )
 
 func PeriodTS(period CandlePeriod, ts time.Time) (time.Time, error) {
@@ -43,59 +53,52 @@ func PeriodTS(period CandlePeriod, ts time.Time) (time.Time, error) {
 	}
 }
 
-type Candle struct {
-	Ticker string
-	Period CandlePeriod // Интервал
-	Open   float64      // Цена открытия
-	High   float64      // Максимальная цена
-	Low    float64      // Минимальная цена
-	Close  float64      // Цена закрытие
-	TS     time.Time    // Время начала интервала
+func NewCandleFromPrice(p Price, cp CandlePeriod) (Candle, error) {
+	candleTS, err := PeriodTS(cp, p.TS)
+	if err != nil {
+		return Candle{}, fmt.Errorf("%e: %w", ErrCreateNewCandle, err)
+	}
+	return Candle{
+		Ticker: p.Ticker,
+		Period: cp,
+		Open:   p.Value,
+		High:   p.Value,
+		Low:    p.Value,
+		Close:  p.Value,
+		TS:     candleTS,
+	}, nil
 }
 
-func (cm CandleMap) UpdateFromPrice(price Price, period CandlePeriod) (Candle, error) {
-	val, ok := cm[price.Ticker]
-	if !ok {
-		if newCandle, err := NewCandleFromPrice(period, price); err != nil {
-			return Candle{}, fmt.Errorf("%v: %v", ErrUpdateCandlesMap, err)
-		} else {
-			cm[price.Ticker] = &newCandle
-		}
-		return Candle{}, nil
+func NewCandleFromCandle(c Candle, period CandlePeriod) (Candle, error) {
+	newCandle := c
+	candleTS, err := PeriodTS(period, c.TS)
+	if err != nil {
+		return Candle{}, fmt.Errorf("%v: %w", ErrCreateNewCandle, err)
 	}
-	if err := val.UpdateFromPrice(price); err != nil {
-		if errors.Is(err, ErrUpdateCandleMismatchedPeriod) {
-			closedCandle := *val
-			if newCandle, err := NewCandleFromPrice(period, price); err != nil {
-				return closedCandle, fmt.Errorf("%v: %w", ErrUpdateCandlesMap, err)
-			} else {
-				cm[price.Ticker] = &newCandle
-				return closedCandle, ErrUpdateCandleMismatchedPeriod
-			}
-		}
-	}
-	return Candle{}, nil
+	newCandle.TS = candleTS
+	newCandle.Period = period
+	return newCandle, nil
 }
 
-func (cm CandleMap) UpdateFromCandle(candle Candle, period CandlePeriod) (Candle, error) {
+func (cm CandleMap) Update(candle Candle, period CandlePeriod) (Candle, error) {
 	val, ok := cm[candle.Ticker]
 	if !ok {
-		if newCandle, err := NewCandleFromCandle(period, candle); err != nil {
+		newCandle, err := NewCandleFromCandle(candle, period)
+		if err != nil {
 			return Candle{}, fmt.Errorf("%v: %w", ErrUpdateCandlesMap, err)
-		} else {
-			cm[candle.Ticker] = &newCandle
-			return Candle{}, nil
 		}
+		cm[candle.Ticker] = &newCandle
+		return Candle{}, nil
 	}
-	if err := val.UpdateFromCandle(candle); err != nil {
+	if err := val.Update(candle); err != nil {
 		if errors.Is(err, ErrUpdateCandleMismatchedPeriod) {
 			closedCandle := *val
-			if newCandle, err := NewCandleFromCandle(period, candle); err != nil {
+			newCandle, err := NewCandleFromCandle(candle, period)
+			if err != nil {
 				return closedCandle, fmt.Errorf("%v: %w", ErrUpdateCandlesMap, err)
-			} else {
-				cm[candle.Ticker] = &newCandle
-				return closedCandle, ErrUpdateCandleMismatchedPeriod
 			}
+			cm[candle.Ticker] = &newCandle
+			return closedCandle, ErrUpdateCandleMismatchedPeriod
 		}
 	}
 	return Candle{}, nil
@@ -109,52 +112,7 @@ func (cm CandleMap) FlushMap() []Candle {
 	return candles
 }
 
-func NewCandleFromPrice(period CandlePeriod, p Price) (Candle, error) {
-	candleTS, err := PeriodTS(period, p.TS)
-	if err != nil {
-		return Candle{}, fmt.Errorf("%e: %w", ErrCreateNewCandle, err)
-	}
-	return Candle{
-		Ticker: p.Ticker,
-		Period: period,
-		Open:   p.Value,
-		High:   p.Value,
-		Low:    p.Value,
-		Close:  p.Value,
-		TS:     candleTS,
-	}, nil
-}
-
-func NewCandleFromCandle(period CandlePeriod, c Candle) (Candle, error) {
-	newCandle := c
-	candleTS, err := PeriodTS(period, c.TS)
-	if err != nil {
-		return Candle{}, fmt.Errorf("%v: %w", ErrCreateNewCandle, err)
-	}
-	newCandle.TS = candleTS
-	newCandle.Period = period
-	return newCandle, nil
-}
-
-func (c *Candle) UpdateFromPrice(p Price) error {
-	pTS, err := PeriodTS(c.Period, p.TS)
-	if err != nil {
-		return fmt.Errorf("%v: %w", ErrUpdateCandle, err)
-	}
-	if pTS != c.TS {
-		return ErrUpdateCandleMismatchedPeriod
-	}
-	if p.Value > c.High {
-		c.High = p.Value
-	}
-	if p.Value < c.Low {
-		c.Low = p.Value
-	}
-	c.Close = p.Value
-	return nil
-}
-
-func (c *Candle) UpdateFromCandle(otherCandle Candle) error {
+func (c *Candle) Update(otherCandle Candle) error {
 	candleTS, err := PeriodTS(c.Period, otherCandle.TS)
 	if err != nil {
 		return fmt.Errorf("%v: %w", ErrUpdateCandle, err)
