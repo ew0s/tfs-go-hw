@@ -15,8 +15,11 @@ import (
 )
 
 var (
-	ErrCreateFile        = errors.New("create file")
-	ErrWriteCandleToFile = errors.New("writeCandleToFile")
+	ErrCreateFile              = errors.New("create file")
+	ErrWriteCandleToFile       = errors.New("writeCandleToFile")
+	ErrGenerateCandleFromPrice = errors.New("generate candle from price")
+	ErrUpdateCandle            = errors.New("update candle")
+	ErrSave                    = errors.New("save")
 )
 
 var tickers = []string{"AAPL", "SBER", "NVDA", "TSLA"}
@@ -47,86 +50,129 @@ func main() {
 }
 
 func startPipeline(prices <-chan domain.Price) {
-	wg := sync.WaitGroup{}
-	wg.Add(4)
+	var errs []<-chan error
 
-	candlesFromPrices := generateCandleFromPrice(&wg, domain.CandlePeriod1m, prices)
-	candles1m := generateCandleFromCandle(&wg, domain.CandlePeriod1m, candlesFromPrices)
-	candles2m := generateCandleFromCandle(&wg, domain.CandlePeriod2m, candles1m)
-	generateLastCandleFromCandle(&wg, domain.CandlePeriod10m, candles2m)
+	candlesFromPrices, err := generateCandleFromPrice(domain.CandlePeriod1m, prices)
+	errs = append(errs, err)
 
-	wg.Wait()
+	candles1m, errCh, saveErrCh := generateCandleFromCandle(domain.CandlePeriod1m, candlesFromPrices)
+	errs = append(errs, errCh, saveErrCh)
+
+	candles2m, errCh, saveErrCh := generateCandleFromCandle(domain.CandlePeriod2m, candles1m)
+	errs = append(errs, errCh, saveErrCh)
+
+	errCh, saveErrCh = generateLastCandleFromCandle(domain.CandlePeriod10m, candles2m)
+	errs = append(errs, errCh, saveErrCh)
+
+	waitForPipeline(errs...)
 }
 
-func generateCandleFromPrice(wg *sync.WaitGroup, period domain.CandlePeriod, inPrices <-chan domain.Price) <-chan domain.Candle {
-	outCandles := make(chan domain.Candle)
+func waitForPipeline(errs ...<-chan error) {
+	errCh := mergeErrors(errs...)
+	for err := range errCh {
+		if err != nil {
+			log.Warn(err)
+		}
+	}
+}
+
+func mergeErrors(errs ...<-chan error) <-chan error {
+	var wg sync.WaitGroup
+	out := make(chan error, len(errs))
+
+	output := func(c <-chan error) {
+		defer wg.Done()
+		for val := range c {
+			out <- val
+		}
+	}
+
+	wg.Add(len(errs))
+	for _, errCh := range errs {
+		go output(errCh)
+	}
 
 	go func() {
-		defer wg.Done()
+		wg.Wait()
+		close(out)
+	}()
+	return out
+}
+
+func generateCandleFromPrice(period domain.CandlePeriod, inPrices <-chan domain.Price) (<-chan domain.Candle, <-chan error) {
+	outCandles := make(chan domain.Candle)
+	errCh := make(chan error)
+
+	go func() {
 		defer close(outCandles)
+		defer close(errCh)
 
 		for price := range inPrices {
 			log.Info(price)
 			newCandle, err := domain.NewCandleFromPrice(price, period)
 			if err != nil {
-				log.Warn(err)
+				errCh <- fmt.Errorf("%s: %w", ErrGenerateCandleFromPrice, err)
 				continue
 			}
 			outCandles <- newCandle
 		}
 	}()
 
-	return outCandles
+	return outCandles, errCh
 }
 
-func generateCandleFromCandle(wg *sync.WaitGroup, period domain.CandlePeriod, inCandles <-chan domain.Candle) <-chan domain.Candle {
+func generateCandleFromCandle(period domain.CandlePeriod, inCandles <-chan domain.Candle) (<-chan domain.Candle, <-chan error, <-chan error) {
 	outCandles := make(chan domain.Candle)
+	errCh := make(chan error)
 	candleMap := domain.CandleMap{}
 
-	wg.Add(1)
-	saveChan := save(wg, period, outCandles)
+	saveChan, saveErrCh := save(period, outCandles)
 
 	go func() {
-		defer wg.Done()
 		defer close(outCandles)
+		defer close(errCh)
 
 		for candle := range inCandles {
-			updateCandle(candleMap, candle, period, outCandles)
+			updateCandle(candleMap, candle, period, outCandles, errCh)
 		}
 		flushLastCandles(candleMap, outCandles)
 	}()
 
-	return saveChan
+	return saveChan, errCh, saveErrCh
 }
 
-func generateLastCandleFromCandle(wg *sync.WaitGroup, period domain.CandlePeriod, inCandles <-chan domain.Candle) {
-	candles := generateCandleFromCandle(wg, period, inCandles)
-	for range candles {
-	}
+func generateLastCandleFromCandle(period domain.CandlePeriod, inCandles <-chan domain.Candle) (<-chan error, <-chan error) {
+	candles, errCh, saveErrCh := generateCandleFromCandle(period, inCandles)
+	go func() {
+		for range candles {
+		}
+	}()
+	return errCh, saveErrCh
 }
 
-func save(wg *sync.WaitGroup, period domain.CandlePeriod, c <-chan domain.Candle) <-chan domain.Candle {
+func save(period domain.CandlePeriod, c <-chan domain.Candle) (<-chan domain.Candle, <-chan error) {
 	writerChan := make(chan domain.Candle)
+	errCh := make(chan error)
 
 	go func() {
-		defer wg.Done()
 		defer close(writerChan)
+		defer close(errCh)
 
 		file, err := createFile(period)
 		if err != nil {
-			log.Warn(err)
+			errCh <- fmt.Errorf("%s: %w", ErrSave, err)
 		}
 		defer file.Close()
 
 		for candle := range c {
 			writerChan <- candle
 			if err := writeToFile(file, candle); err != nil {
-				log.Warn(err)
+				errCh <- fmt.Errorf("%s: %w", ErrSave, err)
 			}
 		}
 	}()
 
-	return writerChan
+	return writerChan, errCh
 }
 
 func flushLastCandles(cm domain.CandleMap, outCandles chan<- domain.Candle) {
@@ -136,13 +182,13 @@ func flushLastCandles(cm domain.CandleMap, outCandles chan<- domain.Candle) {
 	}
 }
 
-func updateCandle(cm domain.CandleMap, c domain.Candle, p domain.CandlePeriod, outCh chan<- domain.Candle) {
+func updateCandle(cm domain.CandleMap, c domain.Candle, p domain.CandlePeriod, outCh chan<- domain.Candle, errCh chan<- error) {
 	closedCandle, err := cm.Update(c, p)
 	if err != nil {
 		if errors.Is(err, domain.ErrUpdateCandleMismatchedPeriod) {
 			outCh <- closedCandle
 		} else {
-			log.Warn(err)
+			errCh <- fmt.Errorf("%v: %w", ErrUpdateCandle, err)
 		}
 	}
 }
