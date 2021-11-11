@@ -23,6 +23,12 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	{
 		auth.POST("sign-in", h.signIn)
 		auth.POST("sign-up", h.signUp)
+		auth.DELETE("logout", h.userIdentity, h.logout)
+	}
+
+	todo := router.Group("/todo", h.userIdentity)
+	{
+		todo.GET("/", h.getTodo)
 	}
 
 	return router

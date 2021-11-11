@@ -7,6 +7,8 @@ import (
 	"trade-bot/internal/app"
 	"trade-bot/internal/pkg/handler"
 	"trade-bot/internal/pkg/repository"
+	"trade-bot/internal/pkg/repository/postgresRepo"
+	"trade-bot/internal/pkg/repository/redisRepo"
 	"trade-bot/internal/pkg/service"
 
 	"github.com/joho/godotenv"
@@ -23,6 +25,7 @@ var (
 	ErrReadConfig               = errors.New("read config")
 	ErrRunServer                = errors.New("run server")
 	ErrUnableToConnectToDB      = errors.New("unable to connect to database")
+	ErrUnableToConnectToJWTDB   = errors.New("unable to connect to jwt databased")
 	ErrUnableToLoadEnvVariables = errors.New("unable to load enviroment variables")
 )
 
@@ -32,17 +35,26 @@ func main() {
 		log.Fatalf("%s: %s", ErrUnableToInitConfig, err)
 	}
 
-	db, err := repository.NewPostgresDB(config.Database)
+	db, err := postgresRepo.NewPostgresDB(config.PostgreDatabase)
 	if err != nil {
+		db.Close()
 		log.Fatalf("%s: %s", ErrUnableToConnectToDB, err)
 	}
 
-	repos := repository.NewRepository(db)
-	services := service.NewService(repos)
+	redisClient, err := redisRepo.NewRedisClient(config.RedisDatabase)
+	if err != nil {
+		redisClient.Close()
+		log.Fatalf("%s: %s", ErrUnableToConnectToJWTDB, err)
+	}
+
+	repo := repository.NewRepository(db, redisClient)
+	services := service.NewService(repo)
 	handlers := handler.NewHandler(services)
 
 	srv := new(app.Server)
 	if err := srv.Run(config.Server.Port, handlers.InitRoutes()); err != nil {
+		db.Close()
+		redisClient.Close()
 		log.Fatalf("%s: %s", ErrRunServer, err)
 	}
 }
@@ -65,6 +77,6 @@ func initConfig() (configs.Configuration, error) {
 
 	var c configs.Configuration
 	err := viper.Unmarshal(&c)
-	c.Database.Password = os.Getenv("DB_PASSWORD")
+	c.PostgreDatabase.Password = os.Getenv("DB_PASSWORD")
 	return c, err
 }
