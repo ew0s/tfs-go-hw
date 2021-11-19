@@ -10,3 +10,6 @@ postgreDatabase:
 
 redisDatabase:
   port: "6379"
+
+kraken:
+  apiurl: "https://demo-futures.kraken.com"

@@ -4,6 +4,7 @@ type Configuration struct {
 	Server          ServerConfiguration
 	PostgreDatabase PostgreDatabaseConfiguration
 	RedisDatabase   RedisDatabaseConfiguration
+	Kraken          KrakenConfiguration
 }
 
 type ServerConfiguration struct {
@@ -21,4 +22,8 @@ type PostgreDatabaseConfiguration struct {
 
 type RedisDatabaseConfiguration struct {
 	Port string
+}
+
+type KrakenConfiguration struct {
+	APIURL string
 }
