@@ -72,10 +72,6 @@ func TestNewAPIWithClient(t *testing.T) {
 	}
 }
 
-func TestAPI_(t *testing.T) {
-
-}
-
 func TestAPI_createSignature(t *testing.T) {
 	api := NewAPI("h9GBs5aZb2ec2dpMR0g6gz8ih3hq0c+GW4LxZtLCgVYD0wdcVb+S5+vP",
 		"xQvgl2eOV/nYzd0ok0KN7S1S4Yv5GRAC7k7HIp1WUE4ypYYWKf/xm3fHyXc3/asGgEzY7vYTkg6EpIijr4AU8g1s",
