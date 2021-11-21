@@ -7,6 +7,7 @@ require (
 	github.com/gin-gonic/gin v1.7.4
 	github.com/go-redis/redis/v8 v8.11.4
 	github.com/gofrs/uuid v4.1.0+incompatible
+	github.com/gorilla/websocket v1.4.2
 	github.com/jackc/pgx v3.6.2+incompatible
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/joho/godotenv v1.4.0
