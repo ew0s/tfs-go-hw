@@ -7,13 +7,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
 	"io/ioutil"
 	"mime"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 var (
