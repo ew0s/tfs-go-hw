@@ -3,13 +3,11 @@ package models
 import "golang.org/x/crypto/bcrypt"
 
 type User struct {
-	ID       int    `json:"-" db:"id"`
-	Name     string `json:"name" binding:"required"`
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required" db:"password_hash"`
-	// TODO : try to remove 'db:"public_api_key"'
-	PublicAPIKey string `json:"public_api_key" binding:"required" db:"public_api_key"`
-	// TODO : try to remove 'db:"private_api_key"'
+	ID            int    `json:"-" db:"id"`
+	Name          string `json:"name" binding:"required"`
+	Username      string `json:"username" binding:"required"`
+	Password      string `json:"password" binding:"required" db:"password_hash"`
+	PublicAPIKey  string `json:"public_api_key" binding:"required" db:"public_api_key"`
 	PrivateAPIKey string `json:"private_api_key" binding:"required" db:"private_api_key"`
 }
 
