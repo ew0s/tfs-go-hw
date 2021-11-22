@@ -56,7 +56,11 @@ func GetBearerToken(r *http.Request) (string, error) {
 	}
 
 	headerParts := strings.Split(authHeader, " ")
-	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+	if len(headerParts) != 2 {
+		return "", ErrInvalidAuthHeader
+	}
+
+	if headerParts[0] != "Bearer" {
 		return "", ErrInvalidAuthHeader
 	}
 

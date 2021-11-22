@@ -8,6 +8,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var (
+	ErrInvalidInputBody = "invalid input body"
+)
+
 type signInInput struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
@@ -17,7 +21,7 @@ func (h *Handler) signIn(c *gin.Context) {
 	var input signInInput
 
 	if err := c.BindJSON(&input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		newErrorResponse(c, http.StatusBadRequest, ErrInvalidInputBody)
 		return
 	}
 
@@ -36,7 +40,7 @@ func (h *Handler) signUp(c *gin.Context) {
 	var input models.User
 
 	if err := c.BindJSON(&input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		newErrorResponse(c, http.StatusBadRequest, ErrInvalidInputBody)
 		return
 	}
 
@@ -55,6 +59,7 @@ func (h *Handler) logout(c *gin.Context) {
 	token, err := utils.GetBearerToken(c.Request)
 	if err != nil {
 		newErrorResponse(c, http.StatusUnauthorized, err.Error())
+		return
 	}
 
 	if err := h.services.Authorization.LogoutUser(token); err != nil {
