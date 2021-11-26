@@ -26,9 +26,12 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		auth.DELETE("logout", h.userIdentity, h.logout)
 	}
 
-	todo := router.Group("/todo", h.userIdentity)
+	orderManager := router.Group("/orderManager", h.userIdentity)
 	{
-		todo.GET("/", h.getTodo)
+		orderManager.POST("send-order", h.sendOrder)
+		orderManager.PUT("edit-order", h.editOrder)
+		orderManager.DELETE("cancel-order", h.cancelOrder)
+		orderManager.DELETE("cancel-all-orders", h.cancelAllOrders)
 	}
 
 	return router

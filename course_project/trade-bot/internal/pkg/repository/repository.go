@@ -11,6 +11,9 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+
+//go:generate mockgen -source=repository.go -destination=mocks/mock.go
+
 type Authorization interface {
 	CreateUser(models.User) (int, error)
 	GetUser(username string) (models.User, error)
@@ -23,14 +26,20 @@ type JWT interface {
 	DeleteJWT(ad utils.AccessDetails) error
 }
 
+type KrakenOrdersManager interface {
+	CreateOrder(userID int, order models.Order) error
+}
+
 type Repository struct {
 	Authorization
 	JWT
+	KrakenOrdersManager
 }
 
 func NewRepository(db *sqlx.DB, jwtDB *redis.Client) *Repository {
 	return &Repository{
-		Authorization: postgresRepo.NewAuthPostgres(db),
-		JWT:           redisRepo.NewJWTRedis(jwtDB),
+		Authorization:       postgresRepo.NewAuthPostgres(db),
+		JWT:                 redisRepo.NewJWTRedis(jwtDB),
+		KrakenOrdersManager: postgresRepo.NewKrakenOrdersManagerPostgres(db),
 	}
 }
