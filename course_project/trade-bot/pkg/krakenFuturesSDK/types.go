@@ -1,5 +1,45 @@
 package krakenFuturesSDK
 
+type SendOrderStatus string
+
+func (s SendOrderStatus) IsSucessStatus() bool {
+	statuses := map[string]struct{}{"placed": {}, "cancelled": {}}
+	if _, ok := statuses[string(s)]; ok {
+		return true
+	}
+	return false
+}
+
+type EditOrderStatus string
+
+func (s EditOrderStatus) IsSucessStatus() bool {
+	statuses := map[string]struct{}{"edited": {}}
+	if _, ok := statuses[string(s)]; ok {
+		return true
+	}
+	return false
+}
+
+type CancelOrderStatus string
+
+func (s CancelOrderStatus) IsSucessStatus() bool {
+	statuses := map[string]struct{}{"cancelled": {}}
+	if _, ok := statuses[string(s)]; ok {
+		return true
+	}
+	return false
+}
+
+type CancelAllOrdersStatus string
+
+func (s CancelAllOrdersStatus) IsSucessStatus() bool {
+	statuses := map[string]struct{}{"cancelled": {}}
+	if _, ok := statuses[string(s)]; ok {
+		return true
+	}
+	return false
+}
+
 // KrakenErrorResponse wraps the Kraken API JSON error response
 type KrakenErrorResponse struct {
 	Result     string `json:"result,omitempty"`
@@ -18,7 +58,7 @@ type FeeSchedulesResponse struct {
 // OrderBookResponse wraps the Kraken API JSON OrderBook method
 type OrderBookResponse struct {
 	KrakenErrorResponse
-	OrderBook *OrderBook `json:"orderBook,omitempty"`
+	OrderBook OrderBook `json:"orderBook,omitempty"`
 }
 
 // TickersResponse wraps the Kraken API JSON Tickers method
@@ -39,24 +79,24 @@ type InstrumentsResponse struct {
 
 type SendOrderResponse struct {
 	KrakenErrorResponse
-	SendStatus *SendStatus `json:"sendStatus,omitempty"`
+	SendStatus SendStatus `json:"sendStatus,omitempty"`
 }
 
 type SendOrderArguments struct {
-	OrderType     string
-	Symbol        string
-	Side          string
-	Size          uint
-	LimitPrice    float64
-	StopPrice     float64
-	TriggerSignal string
-	CliOrderID    string
-	ReduceOnly    bool
+	OrderType     string  `json:"order_type" binding:"required"`
+	Symbol        string  `json:"symbol" binding:"required"`
+	Side          string  `json:"side" binding:"required"`
+	Size          uint    `json:"size" binding:"required"`
+	LimitPrice    float64 `json:"limit_price"`
+	StopPrice     float64 `json:"stop_price"`
+	TriggerSignal string  `json:"trigger_signal"`
+	CliOrderID    string  `json:"cli_order_id"`
+	ReduceOnly    bool    `json:"reduce_only"`
 }
 
 type EditOrderResponse struct {
 	KrakenErrorResponse
-	EditStatus *EditStatus `json:"editStatus,omitempty"`
+	EditStatus EditStatus `json:"editStatus,omitempty"`
 }
 
 type EditOrderArguments struct {
@@ -69,7 +109,7 @@ type EditOrderArguments struct {
 
 type CancelOrderResponse struct {
 	KrakenErrorResponse
-	CancelStatus *CancelStatus `json:"cancelStatus,omitempty"`
+	CancelStatus CancelStatus `json:"cancelStatus,omitempty"`
 }
 
 type CancelOrderArguments struct {
@@ -79,41 +119,41 @@ type CancelOrderArguments struct {
 
 type CancelAllOrdersResponse struct {
 	KrakenErrorResponse
-	CancelStatus *CancelAllStatus `json:"cancelStatus,omitempty"`
+	CancelStatus CancelAllStatus `json:"cancelStatus,omitempty"`
 }
 
 // --------------------------------------------------------------------------------------- //
 
 type CancelStatus struct {
-	Status       string       `json:"status"`
-	OrderID      string       `json:"order_id"`
-	CliOrdID     string       `json:"cliOrdId,omitempty"`
-	ReceivedTime string       `json:"receivedTime"`
-	OrderEvents  []OrderEvent `json:"orderEvents,omitempty"`
+	Status       CancelOrderStatus `json:"status"`
+	OrderID      string            `json:"order_id"`
+	CliOrdID     string            `json:"cliOrdId,omitempty"`
+	ReceivedTime string            `json:"receivedTime"`
+	OrderEvents  []OrderEvent      `json:"orderEvents,omitempty"`
 }
 
 type EditStatus struct {
-	OrderID      string       `json:"orderId"`
-	CliOrderID   string       `json:"cliOrderId,omitempty"`
-	ReceivedTime string       `json:"receivedTime"`
-	Status       string       `json:"status"`
-	OrderEvents  []OrderEvent `json:"orderEvents,omitempty"`
+	OrderID      string          `json:"orderId"`
+	CliOrderID   string          `json:"cliOrderId,omitempty"`
+	ReceivedTime string          `json:"receivedTime"`
+	Status       EditOrderStatus `json:"status"`
+	OrderEvents  []OrderEvent    `json:"orderEvents,omitempty"`
 }
 
 type SendStatus struct {
-	OrderID      string       `json:"order_id,omitempty"`
-	CliOrderID   string       `json:"cliOrderId,omitempty"`
-	Status       string       `json:"status,omitempty"`
-	ReceivedTime string       `json:"receivedTime,omitempty"`
-	OrderEvents  []OrderEvent `json:"orderEvents,omitempty"`
+	OrderID      string          `json:"order_id,omitempty"`
+	CliOrderID   string          `json:"cliOrderId,omitempty"`
+	Status       SendOrderStatus `json:"status,omitempty"`
+	ReceivedTime string          `json:"receivedTime,omitempty"`
+	OrderEvents  []OrderEvent    `json:"orderEvents,omitempty"`
 }
 
 type CancelAllStatus struct {
-	ReceivedTime    string          `json:"receivedTime,omitempty"`
-	CancelOnly      string          `json:"cancelOnly,omitempty"`
-	Status          string          `json:"status,omitempty"`
-	CancelledOrders []CanceledOrder `json:"cancelledOrders,omitempty"`
-	OrderEvents     []OrderEvent    `json:"orderEvents,omitempty"`
+	ReceivedTime    string                `json:"receivedTime,omitempty"`
+	CancelOnly      string                `json:"cancelOnly,omitempty"`
+	Status          CancelAllOrdersStatus `json:"status,omitempty"`
+	CancelledOrders []CanceledOrder       `json:"cancelledOrders,omitempty"`
+	OrderEvents     []OrderEvent          `json:"orderEvents,omitempty"`
 }
 
 type CanceledOrder struct {
@@ -124,22 +164,22 @@ type CanceledOrder struct {
 type OrderEvent struct {
 	Type                string  `json:"type,omitempty"`
 	ReducedQuantity     int     `json:"reducedQuantity,omitempty"`
-	Order               *Order  `json:"order,omitempty"`
+	Order               Order   `json:"order,omitempty"`
 	UID                 string  `json:"uid,omitempty"`
-	Old                 *Order  `json:"old,omitempty"`
-	New                 *Order  `json:"new,omitempty"`
+	Old                 Order   `json:"old,omitempty"`
+	New                 Order   `json:"new,omitempty"`
 	Reason              string  `json:"reason,omitempty"`
 	Amount              int     `json:"amount,omitempty"`
 	Price               float64 `json:"price,omitempty"`
 	ExecutionID         string  `json:"executionId,omitempty"`
 	TakeReducedQuantity int     `json:"takeReducedQuantity,omitempty"`
-	OrderPriorEdit      *Order  `json:"orderPriorEdit,omitempty"`
-	OrderPriorExecution *Order  `json:"orderPriorExecution,omitempty"`
+	OrderPriorEdit      Order   `json:"orderPriorEdit,omitempty"`
+	OrderPriorExecution Order   `json:"orderPriorExecution,omitempty"`
 }
 
 type Order struct {
 	OrderID             string  `json:"orderId,omitempty"`
-	CliOrderID          *string `json:"cliOrdID,omitempty"`
+	CliOrderID          string  `json:"cliOrdID,omitempty"`
 	ReduceOnly          bool    `json:"reduceOnly"`
 	Symbol              string  `json:"symbol,omitempty"`
 	Quantity            float64 `json:"quantity,omitempty"`
