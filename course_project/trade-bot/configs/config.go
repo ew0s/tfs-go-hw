@@ -2,6 +2,7 @@ package configs
 
 type Configuration struct {
 	Server          ServerConfiguration
+	Client          ClientConfiguration
 	PostgreDatabase PostgreDatabaseConfiguration
 	RedisDatabase   RedisDatabaseConfiguration
 	Kraken          KrakenConfiguration
@@ -9,6 +10,10 @@ type Configuration struct {
 
 type ServerConfiguration struct {
 	Port string
+}
+
+type ClientConfiguration struct {
+	URL string
 }
 
 type PostgreDatabaseConfiguration struct {

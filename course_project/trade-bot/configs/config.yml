@@ -1,6 +1,9 @@
 server:
   port: "8000"
 
+client:
+  url: "http://localhost:8000"
+
 postgreDatabase:
   host: "localhost"
   port: "5432"
