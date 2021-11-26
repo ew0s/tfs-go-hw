@@ -8,13 +8,15 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gin-gonic/gin v1.7.4
 	github.com/go-redis/redis/v8 v8.11.4
+	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible
+	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.4.0-beta.0
 	github.com/gofrs/uuid v4.1.0+incompatible
 	github.com/golang/mock v1.6.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/jackc/pgx v3.6.2+incompatible
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/joho/godotenv v1.4.0
-	github.com/pkg/errors v0.8.1
+	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/viper v1.9.0
 	github.com/stretchr/testify v1.7.0
@@ -54,12 +56,13 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
+	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
 	github.com/yuin/gopher-lua v0.0.0-20210529063254-f4c35e4016d9 // indirect
 	golang.org/x/sys v0.0.0-20211117180635-dee7805ff2e1 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
-	gopkg.in/ini.v1 v1.63.2 // indirect
+	gopkg.in/ini.v1 v1.64.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )

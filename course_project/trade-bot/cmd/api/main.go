@@ -10,6 +10,8 @@ import (
 	"trade-bot/internal/pkg/repository/postgresRepo"
 	"trade-bot/internal/pkg/repository/redisRepo"
 	"trade-bot/internal/pkg/service"
+	"trade-bot/internal/pkg/web"
+	"trade-bot/pkg/krakenFuturesSDK"
 
 	"github.com/joho/godotenv"
 
@@ -27,6 +29,11 @@ var (
 	ErrUnableToConnectToDB      = errors.New("unable to connect to database")
 	ErrUnableToConnectToJWTDB   = errors.New("unable to connect to jwt databased")
 	ErrUnableToLoadEnvVariables = errors.New("unable to load enviroment variables")
+)
+
+const (
+	publicAPIKey  = "PUBLIC_API_KEY"
+	privateAPIKey = "PRIVATE_API_KEY"
 )
 
 func main() {
@@ -47,8 +54,11 @@ func main() {
 		log.Fatalf("%s: %s", ErrUnableToConnectToJWTDB, err)
 	}
 
+	krakenAPI := krakenFuturesSDK.NewAPI(os.Getenv(publicAPIKey), os.Getenv(privateAPIKey), config.Kraken.APIURL)
+
 	repo := repository.NewRepository(db, redisClient)
-	services := service.NewService(repo)
+	newWeb := web.NewWeb(krakenAPI)
+	services := service.NewService(repo, newWeb)
 	handlers := handler.NewHandler(services)
 
 	srv := new(app.Server)
