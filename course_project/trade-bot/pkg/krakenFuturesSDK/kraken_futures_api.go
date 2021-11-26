@@ -26,6 +26,8 @@ var (
 	ErrCouldntParseContentType = errors.New("could noy parse content type")
 	ErrInvalidContentType      = errors.New("invalid content type")
 	ErrCouldntUnmarshalBody    = errors.New("could not unamrshal body")
+	ErrValidateSendStatus      = errors.New("validate send status")
+	ErrEmptyOrderEvents        = errors.New("empty order events")
 )
 
 const (
@@ -129,6 +131,10 @@ func (a *API) SendOrder(args SendOrderArguments) (*SendOrderResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if err := resp.(*SendOrderResponse).SendStatus.ValidateSendStatus(); err != nil {
+		return nil, err
+	}
 	return resp.(*SendOrderResponse), nil
 }
 
@@ -184,6 +190,13 @@ func (a *API) CancelAllOrders(symbol string) (*CancelAllOrdersResponse, error) {
 }
 
 // ---------------------------------------------------------------------------------- //
+
+func (s SendStatus) ValidateSendStatus() error {
+	if len(s.OrderEvents) == 0 {
+		return fmt.Errorf("%s: %s", ErrValidateSendStatus, ErrEmptyOrderEvents)
+	}
+	return nil
+}
 
 // queryPublic make request to public KrakenAPI endpoint
 func (a *API) queryPublic(reqType string, endpoint string, values url.Values, typ interface{}) (interface{}, error) {
