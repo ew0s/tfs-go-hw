@@ -1,6 +1,6 @@
-package telegramBot
+package utils
 
-const startMessage = `
+const StartMessage = `
 Welcome to kraken futures trading bot! 📈
 
 This bot supports trading on simple indicator calling "stop loss & take profit"
@@ -9,7 +9,7 @@ Here is bot commands:
 	💁 /help - list descriptions for commands
 `
 
-const helpMessage = `
+const HelpMessage = `
 Commands 📟:
 	🔵 /help - list descriptions for commands
 	🔵 /sign_up - registrate you in trading bot system
@@ -21,11 +21,11 @@ Commands 📟:
 	🔵 /logout - logout you from trading bot system on every telegram device associated with your username
 `
 
-const invalidCommandMessage = `
+const InvalidCommandMessage = `
 ⛔ No such command
 `
 
-const signUpMessage = `
+const SignUpMessage = `
 🔳 Enter message in format:
 
 Name
@@ -39,15 +39,15 @@ Your private api key
 Ivan ivan password key key
 `
 
-const signUpErrMessage = `
+const SignUpErrMessage = `
 ⛔ Unable to continue further execution of sign up due to
 `
 
-const signUpSuccessMessage = `
+const SignUpSuccessMessage = `
 ✅ User successfully registered!
 `
 
-const signInMessage = `
+const SignInMessage = `
 🔳 Enter message in format:
 
 Username
@@ -58,23 +58,23 @@ Password
 ivan password
 `
 
-const signInErrMessage = `
+const SignInErrMessage = `
 ⛔ Unable to continue further execution of sign in due to
 `
 
-const signInSuccessMessgae = `
+const SignInSuccessMessgae = `
 ✅ User successfully logged in!
 `
 
-const logoutErrMessage = `
+const LogoutErrMessage = `
 ⛔ Unable to continue further execution of logout due to
 `
 
-const logoutSuccessMessgae = `
+const LogoutSuccessMessgae = `
 ✅ User successfully logged out!
 `
 
-const sendOrderMessage = `
+const SendOrderMessage = `
 🔳 Enter message in format:
 
 Symbol (one of symbols on kraken futures)
@@ -86,10 +86,36 @@ Size   (integer up to 25000)
 PI_XBTUSD buy 10000
 `
 
-const sendOrderErrMessage = `
+const SendOrderErrMessage = `
 ⛔ Unable to continue further execution of send order due to
 `
 
-const sendOrderSuccessMessage = `
+const SendOrderSuccessMessage = `
 ✅ Successfully send order!
+`
+
+const StartTradingMessage = `
+🔳 Enter message in format:
+
+Symbol (one of symbols on kraken futures)
+Side   (buy or sell)      
+Size   (integer up to 25000)
+Take profit border (the value of the delta above which the order will be closed 📈)
+Stop loss border (the value of the delta below which the order will be closed 📉)
+
+🔳 Example:
+
+PI_XBTUSD buy 10000 1000 1000
+`
+
+const StartTradingErrMessage = `
+⛔ Unable to continue further execution of start trading due to
+`
+
+const StartTardingWillNotifyMessage = `
+⌛ Bot will notify you when trading will stop
+`
+
+const StartTradingSuccessMessage = `
+✅ Order have been successfully traded!
 `
