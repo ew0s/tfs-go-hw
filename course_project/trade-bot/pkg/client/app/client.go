@@ -2,17 +2,32 @@ package app
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+
 	"trade-bot/configs"
+
+	"github.com/gorilla/websocket"
+	"github.com/pkg/errors"
 )
+
+var (
+	ErrDoWS                       = errors.New("do ws")
+	ErrUnableToConnectToWebscoket = errors.New("unable to connect to websocket")
+)
+
+const maxEstablishConnectCounter = 5
 
 type ClientActions interface {
 	NewRequest(method, path, jwtToken string, body interface{}) (*http.Request, error)
+	NewWsRequest(path, jwtToken string) (*http.Request, error)
 	Do(req *http.Request, typ interface{}) (*http.Response, error)
+	DoWS(req *http.Request, typ interface{}) (*websocket.Conn, error)
+	LoopOverWS(ctx context.Context, conn *websocket.Conn, typ interface{}) (<-chan interface{}, <-chan error)
 }
 
 type Client struct {
@@ -20,6 +35,7 @@ type Client struct {
 	UserAgent string
 
 	httpClient *http.Client
+	ws         *websocket.Dialer
 }
 
 func NewClient(config configs.ClientConfiguration) (*Client, error) {
@@ -32,9 +48,64 @@ func NewClient(config configs.ClientConfiguration) (*Client, error) {
 		BaseURL:    urlValue,
 		UserAgent:  "go client user agent",
 		httpClient: http.DefaultClient,
+		ws:         websocket.DefaultDialer,
 	}
 
 	return c, nil
+}
+
+func (c *Client) NewWsRequest(path, jwtToken string) (*http.Request, error) {
+	req, err := c.NewRequest(http.MethodGet, path, jwtToken, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.URL.Scheme = "ws"
+	return req, nil
+}
+
+func (c *Client) DoWS(req *http.Request, typ interface{}) (*websocket.Conn, error) {
+	for i := 0; i < maxEstablishConnectCounter; i++ {
+		conn, resp, err := c.ws.Dial(req.URL.String(), req.Header)
+		if err != nil {
+			continue
+		}
+		if resp.StatusCode != http.StatusSwitchingProtocols {
+			continue
+		}
+
+		if err := conn.WriteJSON(typ); err != nil {
+			continue
+		}
+
+		return conn, nil
+	}
+
+	return nil, fmt.Errorf("%s: %s", ErrDoWS, ErrUnableToConnectToWebscoket)
+}
+
+func (c *Client) LoopOverWS(ctx context.Context, conn *websocket.Conn, typ interface{}) (<-chan interface{}, <-chan error) {
+	loopChan := make(chan interface{}, 1)
+	errCh := make(chan error, 1)
+
+	go func() {
+		<-ctx.Done()
+		conn.Close()
+	}()
+
+	go func() {
+		defer close(loopChan)
+		defer close(errCh)
+
+		for {
+			if err := conn.ReadJSON(&typ); err != nil {
+				return
+			}
+			loopChan <- typ
+		}
+	}()
+
+	return loopChan, errCh
 }
 
 func (c *Client) NewRequest(method, path, jwtToken string, body interface{}) (*http.Request, error) {

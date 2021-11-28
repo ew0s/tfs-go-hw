@@ -1,8 +1,10 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+
 	"trade-bot/pkg/client/app"
 	"trade-bot/pkg/client/models"
 
@@ -10,7 +12,8 @@ import (
 )
 
 var (
-	ErrSendOrder = errors.New("send order")
+	ErrSendOrder    = errors.New("send order")
+	ErrStratTrading = errors.New("strat trading")
 )
 
 type OrdersManagerService struct {
@@ -22,7 +25,7 @@ func NewOrdersManagerService(client app.ClientActions) *OrdersManagerService {
 }
 
 func (s *OrdersManagerService) SendOrder(input models.SendOrderInput) (models.SendOrderResponse, error) {
-	req, err := s.client.NewRequest(http.MethodPost, "/orderManager/send-order", input.JwtToken, input)
+	req, err := s.client.NewRequest(http.MethodPost, "/orderManager/send-order", input.JWTToken, input)
 	if err != nil {
 		return models.SendOrderResponse{}, fmt.Errorf("%s: %w", ErrSendOrder, err)
 	}
@@ -39,4 +42,31 @@ func (s *OrdersManagerService) SendOrder(input models.SendOrderInput) (models.Se
 	}
 
 	return output, err
+}
+
+func (s *OrdersManagerService) StartTrading(ctx context.Context, input models.StartTradingInput) (<-chan *models.StartTradingResponse, <-chan error, error) {
+	req, err := s.client.NewWsRequest("/orderManager/ws/start-trade", input.JWTToken)
+	if err != nil {
+		return nil, nil, fmt.Errorf("%s: %w", ErrStratTrading, err)
+	}
+
+	conn, err := s.client.DoWS(req, input)
+	if err != nil {
+		return nil, nil, fmt.Errorf("%s: %w", ErrStratTrading, err)
+	}
+
+	var output models.StartTradingResponse
+
+	respCh, errCh := s.client.LoopOverWS(ctx, conn, &output)
+
+	tradingRespCh := make(chan *models.StartTradingResponse)
+	go func() {
+		defer close(tradingRespCh)
+
+		for val := range respCh {
+			tradingRespCh <- val.(*models.StartTradingResponse)
+		}
+	}()
+
+	return tradingRespCh, errCh, nil
 }

@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	"trade-bot/pkg/client/app"
 	"trade-bot/pkg/client/models"
 )
@@ -11,18 +13,19 @@ type Authorization interface {
 	Logout(input models.LogoutInput) (models.LogoutResponse, error)
 }
 
-type OrdersManagee interface {
+type OrdersManager interface {
 	SendOrder(input models.SendOrderInput) (models.SendOrderResponse, error)
+	StartTrading(ctx context.Context, input models.StartTradingInput) (<-chan *models.StartTradingResponse, <-chan error, error)
 }
 
 type Service struct {
 	Authorization
-	OrdersManagee
+	OrdersManager
 }
 
 func NewService(client app.ClientActions) *Service {
 	return &Service{
 		Authorization: NewAuthService(client),
-		OrdersManagee: NewOrdersManagerService(client),
+		OrdersManager: NewOrdersManagerService(client),
 	}
 }
