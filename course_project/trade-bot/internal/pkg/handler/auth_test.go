@@ -90,7 +90,7 @@ func TestHandler_signUp(t *testing.T) {
 			test.mockBehaviour(repo, test.inputUser)
 
 			services := &service.Service{Authorization: repo}
-			handler := Handler{services}
+			handler := Handler{services, nil, nil}
 
 			// test server
 			r := gin.New()
@@ -162,7 +162,7 @@ func TestHandler_signIn(t *testing.T) {
 			test.mockBehaviour(repo, test.username, test.password)
 
 			services := &service.Service{Authorization: repo}
-			handler := Handler{services}
+			handler := Handler{services, nil, nil}
 
 			r := gin.New()
 			r.POST("/sign-in", handler.signIn)
@@ -251,7 +251,7 @@ func TestHandler_logout(t *testing.T) {
 			test.mockBehaviour(repo, test.token)
 
 			services := &service.Service{Authorization: repo}
-			handler := Handler{services}
+			handler := Handler{services, nil, nil}
 
 			r := gin.New()
 			r.DELETE("/logout", handler.logout)

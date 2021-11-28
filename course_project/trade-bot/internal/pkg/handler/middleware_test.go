@@ -105,7 +105,7 @@ func TestHandler_userIdentity(t *testing.T) {
 			test.mockBehaviourOnGetUserAPIKeys(repo, test.token)
 
 			services := &service.Service{Authorization: repo}
-			handler := Handler{services}
+			handler := Handler{services, nil, nil}
 
 			r := gin.New()
 			r.GET("/identity", handler.userIdentity, func(c *gin.Context) {
