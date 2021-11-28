@@ -10,7 +10,6 @@ CREATE TABLE users
 
 CREATE TABLE orders
 (
-    id                    serial       not null unique,
     order_id              varchar(255) not null unique,
     user_id               integer      not null,
     cli_order_id          varchar(255) not null,
