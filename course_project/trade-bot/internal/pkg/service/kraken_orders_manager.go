@@ -2,8 +2,10 @@ package service
 
 import (
 	"fmt"
-	"trade-bot/internal/pkg/models"
+
 	"trade-bot/internal/pkg/repository"
+	"trade-bot/internal/pkg/tradeAlgorithm"
+	"trade-bot/internal/pkg/tradeAlgorithm/types"
 	"trade-bot/internal/pkg/web"
 	"trade-bot/pkg/krakenFuturesSDK"
 
@@ -12,16 +14,18 @@ import (
 
 var (
 	ErrSendOrderServiceMethod = errors.New("send order service method")
-	ErrUnknownSendStatusType  = errors.New("unknown send status type")
+	ErrStartTradingService    = errors.New("start trading service")
 )
 
 type KrakenOrdersManagerService struct {
-	sdk  web.KrakenOrdersManager
-	rpeo repository.KrakenOrdersManager
+	sdk    web.KrakenOrdersManager
+	rpeo   repository.KrakenOrdersManager
+	trader tradeAlgorithm.Trader
 }
 
-func NewKrakenOrdersManagerService(sdk web.KrakenOrdersManager, rpeo repository.KrakenOrdersManager) *KrakenOrdersManagerService {
-	return &KrakenOrdersManagerService{sdk: sdk, rpeo: rpeo}
+func NewKrakenOrdersManagerService(sdk web.KrakenOrdersManager, rpeo repository.KrakenOrdersManager,
+	trader tradeAlgorithm.Trader) *KrakenOrdersManagerService {
+	return &KrakenOrdersManagerService{sdk: sdk, rpeo: rpeo, trader: trader}
 }
 
 func (k *KrakenOrdersManagerService) SendOrder(userID int, args krakenFuturesSDK.SendOrderArguments) (string, error) {
@@ -30,7 +34,7 @@ func (k *KrakenOrdersManagerService) SendOrder(userID int, args krakenFuturesSDK
 		return "", fmt.Errorf("%s: %w", ErrSendOrderServiceMethod, err)
 	}
 
-	order, err := parseSendStatusToExecutedOrder(userID, sendStatus)
+	order, err := k.sdk.ParseSendStatusToExecutedOrder(userID, sendStatus)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", ErrSendOrderServiceMethod, err)
 	}
@@ -42,24 +46,37 @@ func (k *KrakenOrdersManagerService) SendOrder(userID int, args krakenFuturesSDK
 	return order.ID, nil
 }
 
-func parseSendStatusToExecutedOrder(userID int, sendStatus krakenFuturesSDK.SendStatus) (models.Order, error) {
-	orderEvent := sendStatus.OrderEvents[0]
-
-	if orderEvent.Type == "EXECUTION" {
-		return models.Order{
-			ID:                  orderEvent.OrderPriorExecution.OrderID,
-			UserID:              userID,
-			ClientOrderID:       orderEvent.OrderPriorExecution.CliOrderID,
-			Type:                orderEvent.Type,
-			Symbol:              orderEvent.OrderPriorExecution.Symbol,
-			Quantity:            orderEvent.OrderPriorExecution.Quantity,
-			Side:                orderEvent.OrderPriorExecution.Side,
-			LimitPrice:          orderEvent.OrderPriorExecution.LimitPrice,
-			Filled:              orderEvent.OrderPriorExecution.Filled,
-			Timestamp:           orderEvent.OrderPriorExecution.Timestamp,
-			LastUpdateTimestamp: orderEvent.OrderPriorExecution.LastUpdateTimestamp,
-		}, nil
+func (k *KrakenOrdersManagerService) StartTrading(userID int, details types.TradingDetails) (string, error) {
+	sendArgs := krakenFuturesSDK.SendOrderArguments{
+		OrderType: details.OrderType,
+		Symbol:    details.Symbol,
+		Side:      details.Side,
+		Size:      details.Size,
 	}
 
-	return models.Order{}, ErrUnknownSendStatusType
+	orderID, err := k.SendOrder(userID, sendArgs)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", ErrStartTradingService, err)
+	}
+
+	order, err := k.rpeo.GetOrder(orderID)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", ErrStartTradingService, err)
+	}
+
+	details.BuyPrice = order.LimitPrice
+
+	if err := k.trader.StartAnalyzing(details); err != nil {
+		return "", fmt.Errorf("%s: %w", ErrStartTradingService, err)
+	}
+
+	opositeArgs := sendArgs
+	opositeArgs.ChangeToOpositeOrderSide()
+
+	orderID, err = k.SendOrder(userID, opositeArgs)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", ErrStartTradingService, err)
+	}
+
+	return orderID, nil
 }

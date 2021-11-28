@@ -25,6 +25,7 @@ type JWT interface {
 
 type KrakenOrdersManager interface {
 	CreateOrder(userID int, order models.Order) error
+	GetOrder(orderID string) (models.Order, error)
 }
 
 type Repository struct {

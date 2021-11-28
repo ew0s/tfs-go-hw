@@ -1,5 +1,8 @@
 package krakenFuturesSDK
 
+const SellSide = "sell"
+const BuySide = "buy"
+
 type SendOrderStatus string
 
 func (s SendOrderStatus) IsSucessStatus() bool {
@@ -92,6 +95,14 @@ type SendOrderArguments struct {
 	TriggerSignal string  `json:"trigger_signal"`
 	CliOrderID    string  `json:"cli_order_id"`
 	ReduceOnly    bool    `json:"reduce_only"`
+}
+
+func (s *SendOrderArguments) ChangeToOpositeOrderSide() {
+	if s.Side == BuySide {
+		s.Side = SellSide
+	} else {
+		s.Side = BuySide
+	}
 }
 
 type EditOrderResponse struct {

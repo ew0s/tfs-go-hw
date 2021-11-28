@@ -3,6 +3,8 @@ package service
 import (
 	"trade-bot/internal/pkg/models"
 	"trade-bot/internal/pkg/repository"
+	"trade-bot/internal/pkg/tradeAlgorithm"
+	"trade-bot/internal/pkg/tradeAlgorithm/types"
 	"trade-bot/internal/pkg/web"
 	"trade-bot/pkg/krakenFuturesSDK"
 )
@@ -17,6 +19,7 @@ type Authorization interface {
 
 type KrakenOrdersManager interface {
 	SendOrder(userID int, args krakenFuturesSDK.SendOrderArguments) (string, error)
+	StartTrading(userID int, details types.TradingDetails) (string, error)
 }
 
 type Service struct {
@@ -24,9 +27,9 @@ type Service struct {
 	KrakenOrdersManager
 }
 
-func NewService(r *repository.Repository, w *web.Web) *Service {
+func NewService(r *repository.Repository, w *web.Web, a *tradeAlgorithm.TradeAlgorithm) *Service {
 	return &Service{
 		Authorization:       NewAuthService(r.Authorization, r.JWT),
-		KrakenOrdersManager: NewKrakenOrdersManagerService(w.KrakenOrdersManager, r.KrakenOrdersManager),
+		KrakenOrdersManager: NewKrakenOrdersManagerService(w.KrakenOrdersManager, r.KrakenOrdersManager, a.Trader),
 	}
 }

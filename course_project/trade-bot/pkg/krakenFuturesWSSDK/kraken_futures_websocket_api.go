@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-	"trade-bot/pkg/krakenFuturesWSSDK/wsConfigs"
+
+	"trade-bot/configs"
 
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
@@ -28,20 +29,16 @@ const (
 )
 
 type WSAPI struct {
-	ws            *websocket.Dialer
-	apiPublicKey  string
-	apiPrivateKey string
-	wsAPIURL      string
-	config        wsConfigs.WSAPIRequestsConfig
+	ws             *websocket.Dialer
+	wsAPIURL       string
+	requestsConfig configs.KrakenWSAPIRequestsConfiguration
 }
 
-func NewWSAPI(config wsConfigs.WSAPIConfig) *WSAPI {
+func NewWSAPI(config configs.KrakenWSConfiguration) *WSAPI {
 	return &WSAPI{
-		ws:            websocket.DefaultDialer,
-		apiPublicKey:  config.Kraken.PublicKey,
-		apiPrivateKey: config.Kraken.PublicKey,
-		wsAPIURL:      config.Kraken.WSAPIURL,
-		config:        config.Requests,
+		ws:             websocket.DefaultDialer,
+		wsAPIURL:       config.Kraken.WSAPIURL,
+		requestsConfig: config.Requests,
 	}
 }
 
@@ -116,7 +113,7 @@ func (a *WSAPI) establishConnect() (*websocket.Conn, error) {
 	var initResp map[string]interface{}
 
 	for i := 0; i < maxEstablishConnectCounter; i++ {
-		conn, resp, err := websocket.DefaultDialer.Dial(a.wsAPIURL, nil)
+		conn, resp, err := a.ws.Dial(a.wsAPIURL, nil)
 		if err != nil {
 			continue
 		}
@@ -156,9 +153,9 @@ func (a *WSAPI) loopOverWS(ctx context.Context, conn *websocket.Conn, args Krake
 	loopChan := make(chan interface{})
 	errChan := make(chan error, 1)
 
-	conn.SetReadLimit(int64(a.config.MaxMessageSize))
+	conn.SetReadLimit(int64(a.requestsConfig.MaxMessageSize))
 	conn.SetPongHandler(func(string) error {
-		return conn.SetReadDeadline(time.Now().Add(time.Duration(a.config.PongWait)))
+		return conn.SetReadDeadline(time.Now().Add(time.Second * time.Duration(a.requestsConfig.PongWaitInSeconds)))
 	})
 
 	go func() {

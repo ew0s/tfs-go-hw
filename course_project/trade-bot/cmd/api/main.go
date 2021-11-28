@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
+
 	"trade-bot/configs"
 	"trade-bot/internal/app"
 	"trade-bot/internal/pkg/handler"
@@ -10,8 +12,13 @@ import (
 	"trade-bot/internal/pkg/repository/postgresRepo"
 	"trade-bot/internal/pkg/repository/redisRepo"
 	"trade-bot/internal/pkg/service"
+	"trade-bot/internal/pkg/tradeAlgorithm"
 	"trade-bot/internal/pkg/web"
 	"trade-bot/pkg/krakenFuturesSDK"
+	"trade-bot/pkg/krakenFuturesWSSDK"
+
+	"github.com/go-playground/validator/v10"
+	"github.com/gorilla/websocket"
 
 	"github.com/joho/godotenv"
 
@@ -55,11 +62,23 @@ func main() {
 	}
 
 	krakenAPI := krakenFuturesSDK.NewAPI(os.Getenv(publicAPIKey), os.Getenv(privateAPIKey), config.Kraken.APIURL)
+	krakenWSAPI := krakenFuturesWSSDK.NewWSAPI(config.KrakenWS)
 
 	repo := repository.NewRepository(db, redisClient)
-	newWeb := web.NewWeb(krakenAPI)
-	services := service.NewService(repo, newWeb)
-	handlers := handler.NewHandler(services)
+	newWeb := web.NewWeb(krakenAPI, krakenWSAPI)
+	newTrader := tradeAlgorithm.NewTradeAlgorithm(newWeb)
+
+	validate := validator.New()
+	upgrader := websocket.Upgrader{
+		WriteBufferSize: config.Server.Websocket.WriteBufferSize,
+		ReadBufferSize:  config.Server.Websocket.ReadBufferSize,
+		CheckOrigin: func(r *http.Request) bool {
+			return config.Server.Websocket.CheckOrigin
+		},
+	}
+
+	services := service.NewService(repo, newWeb, newTrader)
+	handlers := handler.NewHandler(services, validate, &upgrader)
 
 	srv := new(app.Server)
 	if err := srv.Run(config.Server.Port, handlers.InitRoutes()); err != nil {

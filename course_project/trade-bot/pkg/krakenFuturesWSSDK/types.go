@@ -1,5 +1,7 @@
 package krakenFuturesWSSDK
 
+const OneMinuteCandlesFeed = "candles_trade_1m"
+
 // -------------------------- PUBLIC KRAKEN WEBSOCKET API DATA -------------------------- //
 
 type KrakenSendMessageArguments struct {

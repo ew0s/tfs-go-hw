@@ -1,8 +1,13 @@
 server:
   port: "8000"
+  websocket:
+    readBufferSize: 1024
+    writeBufferSize: 1024
+    checkOrigin: true
 
 client:
   url: "http://localhost:8000"
+  wsurl : "ws://localhost:8000"
 
 postgreDatabase:
   host: "localhost"
@@ -16,3 +21,12 @@ redisDatabase:
 
 kraken:
   apiurl: "https://demo-futures.kraken.com"
+
+krakenWS:
+  requests:
+    writeWaitInSeconds: 10
+    pongWaitInSeconds: 60
+    pingPeriodInSeconds: 10
+    maxMessageSize: 512
+  kraken:
+    wsapiurl: "wss://demo-futures.kraken.com/ws/v1"

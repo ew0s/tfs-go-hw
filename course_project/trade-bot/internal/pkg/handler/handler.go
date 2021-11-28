@@ -3,15 +3,20 @@ package handler
 import (
 	"trade-bot/internal/pkg/service"
 
+	"github.com/go-playground/validator/v10"
+	"github.com/gorilla/websocket"
+
 	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
-	services *service.Service
+	services   *service.Service
+	validate   *validator.Validate
+	wsUpgrader *websocket.Upgrader
 }
 
-func NewHandler(services *service.Service) *Handler {
-	return &Handler{services: services}
+func NewHandler(services *service.Service, validate *validator.Validate, wsUpgrader *websocket.Upgrader) *Handler {
+	return &Handler{services: services, validate: validate, wsUpgrader: wsUpgrader}
 }
 
 func (h *Handler) InitRoutes() *gin.Engine {
@@ -29,9 +34,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	orderManager := router.Group("/orderManager", h.userIdentity)
 	{
 		orderManager.POST("send-order", h.sendOrder)
-		orderManager.PUT("edit-order", h.editOrder)
-		orderManager.DELETE("cancel-order", h.cancelOrder)
-		orderManager.DELETE("cancel-all-orders", h.cancelAllOrders)
+		orderManager.GET("ws/start-trade", h.startTrade)
 	}
 
 	return router

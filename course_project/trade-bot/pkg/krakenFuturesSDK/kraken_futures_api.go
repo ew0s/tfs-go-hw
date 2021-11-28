@@ -50,15 +50,6 @@ func NewAPI(apiPublicKey, apiPrivateKey string, apiURL string) *API {
 	}
 }
 
-func NewAPIWithClient(apiPublicKey, apiPrivateKey, apiURL string, client *http.Client) *API {
-	return &API{
-		apiPublicKey:  apiPublicKey,
-		apiPrivateKey: apiPrivateKey,
-		client:        client,
-		apiURL:        apiURL,
-	}
-}
-
 // -------------------------- PUBLIC KRAKEN API ENDPOINTS -------------------------- //
 
 func (a *API) FeeSchedules() (*FeeSchedulesResponse, error) {
@@ -133,7 +124,7 @@ func (a *API) SendOrder(args SendOrderArguments) (*SendOrderResponse, error) {
 	}
 
 	if err := resp.(*SendOrderResponse).SendStatus.ValidateSendStatus(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: send status - %s", err, resp.(*SendOrderResponse).SendStatus.Status)
 	}
 	return resp.(*SendOrderResponse), nil
 }

@@ -1,18 +1,21 @@
-package webSDK
+package webKraken
 
 import (
 	"fmt"
+
+	"trade-bot/internal/pkg/models"
 	"trade-bot/pkg/krakenFuturesSDK"
 
 	"github.com/pkg/errors"
 )
 
 var (
-	ErrSendOrder       = errors.New("web sdk: send order")
-	ErrEditOrder       = errors.New("web sdk: edit order")
-	ErrCancelOrder     = errors.New("web sdk: cancel order")
-	ErrCancelAllOrders = errors.New("web sdk: cancel all orders")
-	ErrInvalidStatus   = errors.New("invalid status")
+	ErrSendOrder             = errors.New("web sdk: send order")
+	ErrEditOrder             = errors.New("web sdk: edit order")
+	ErrCancelOrder           = errors.New("web sdk: cancel order")
+	ErrCancelAllOrders       = errors.New("web sdk: cancel all orders")
+	ErrInvalidStatus         = errors.New("invalid status")
+	ErrUnknownSendStatusType = errors.New("unknown send status type")
 )
 
 type KrakenOrdersManagerWebSDK struct {
@@ -97,4 +100,26 @@ func (k *KrakenOrdersManagerWebSDK) CancelAllOrders(symbol string) (krakenFuture
 	}
 
 	return response.CancelStatus, nil
+}
+
+func (k *KrakenOrdersManagerWebSDK) ParseSendStatusToExecutedOrder(userID int, sendStatus krakenFuturesSDK.SendStatus) (models.Order, error) {
+	orderEvent := sendStatus.OrderEvents[0]
+
+	if orderEvent.Type == "EXECUTION" {
+		return models.Order{
+			ID:                  orderEvent.OrderPriorExecution.OrderID,
+			UserID:              userID,
+			ClientOrderID:       orderEvent.OrderPriorExecution.CliOrderID,
+			Type:                orderEvent.Type,
+			Symbol:              orderEvent.OrderPriorExecution.Symbol,
+			Quantity:            orderEvent.OrderPriorExecution.Quantity,
+			Side:                orderEvent.OrderPriorExecution.Side,
+			LimitPrice:          orderEvent.OrderPriorExecution.LimitPrice,
+			Filled:              orderEvent.OrderPriorExecution.Filled,
+			Timestamp:           orderEvent.OrderPriorExecution.Timestamp,
+			LastUpdateTimestamp: orderEvent.OrderPriorExecution.LastUpdateTimestamp,
+		}, nil
+	}
+
+	return models.Order{}, ErrUnknownSendStatusType
 }

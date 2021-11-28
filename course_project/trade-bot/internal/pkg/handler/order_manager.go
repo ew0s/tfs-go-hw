@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"trade-bot/internal/pkg/tradeAlgorithm/types"
 	"trade-bot/pkg/krakenFuturesSDK"
 
 	"github.com/gin-gonic/gin"
@@ -32,14 +33,42 @@ func (h *Handler) sendOrder(c *gin.Context) {
 	})
 }
 
-func (h *Handler) editOrder(c *gin.Context) {
+func (h *Handler) startTrade(c *gin.Context) {
+	conn, err := h.wsUpgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		newErrorResponse(c, http.StatusForbidden, err.Error())
+		return
+	}
+	defer conn.Close()
 
-}
+	userID, err := getUserID(c)
+	if err != nil {
+		newWebsocketErrResponse(c, http.StatusUnauthorized, conn, err.Error())
+		return
+	}
 
-func (h *Handler) cancelOrder(c *gin.Context) {
+	var td types.TradingDetails
+	if err := conn.ReadJSON(&td); err != nil {
+		newWebsocketErrResponse(c, http.StatusInternalServerError, conn, err.Error())
+		return
+	}
 
-}
+	if err := h.validate.Struct(td); err != nil {
+		newWebsocketErrResponse(c, http.StatusBadRequest, conn, err.Error())
+		return
+	}
 
-func (h *Handler) cancelAllOrders(c *gin.Context) {
+	orderID, err := h.services.KrakenOrdersManager.StartTrading(userID, td)
+	if err != nil {
+		newWebsocketErrResponse(c, http.StatusInternalServerError, conn, err.Error())
+		return
+	}
 
+	output := map[string]interface{}{
+		"order_id": orderID,
+	}
+	if err := conn.WriteJSON(output); err != nil {
+		newWebsocketErrResponse(c, http.StatusInternalServerError, conn, err.Error())
+		return
+	}
 }
