@@ -4,13 +4,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"trade-bot/internal/pkg/service"
-	mockService "trade-bot/internal/pkg/service/mocks"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+
+	"trade-bot/internal/pkg/service"
+	mockService "trade-bot/internal/pkg/service/mocks"
 )
 
 func TestHandler_userIdentity(t *testing.T) {

@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"time"
 
-	"trade-bot/configs"
-
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
+	"trade-bot/configs"
 )
 
 var (

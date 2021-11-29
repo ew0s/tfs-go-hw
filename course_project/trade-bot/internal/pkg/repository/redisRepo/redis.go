@@ -3,10 +3,11 @@ package redisRepo
 import (
 	"context"
 	"fmt"
-	"trade-bot/configs"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
+
+	"trade-bot/configs"
 )
 
 var (

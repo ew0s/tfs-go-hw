@@ -6,12 +6,12 @@ import (
 	"math"
 	"strconv"
 
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+
 	"trade-bot/internal/pkg/tradeAlgorithm/types"
 	"trade-bot/internal/pkg/web"
 	"trade-bot/pkg/krakenFuturesWSSDK"
-
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 )
 
 var (

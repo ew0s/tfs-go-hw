@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"trade-bot/pkg/client/models"
-	"trade-bot/pkg/client/service"
-	"trade-bot/pkg/telegramBot/utils"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	log "github.com/sirupsen/logrus"
+
+	"trade-bot/pkg/client/models"
+	"trade-bot/pkg/client/service"
+	"trade-bot/pkg/telegramBot/utils"
 )
 
 var (

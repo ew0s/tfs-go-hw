@@ -3,10 +3,10 @@ package webKraken
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
+
 	"trade-bot/internal/pkg/models"
 	"trade-bot/pkg/krakenFuturesSDK"
-
-	"github.com/pkg/errors"
 )
 
 var (

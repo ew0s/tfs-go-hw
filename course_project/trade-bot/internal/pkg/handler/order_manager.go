@@ -2,10 +2,11 @@ package handler
 
 import (
 	"net/http"
-	"trade-bot/internal/pkg/tradeAlgorithm/types"
-	"trade-bot/pkg/krakenFuturesSDK"
 
 	"github.com/gin-gonic/gin"
+
+	"trade-bot/internal/pkg/tradeAlgorithm/types"
+	"trade-bot/pkg/krakenFuturesSDK"
 )
 
 // @Summary SendOrder

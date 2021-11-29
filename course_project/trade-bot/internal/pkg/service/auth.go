@@ -3,11 +3,12 @@ package service
 import (
 	"fmt"
 	"time"
+
+	"github.com/pkg/errors"
+
 	"trade-bot/internal/pkg/models"
 	"trade-bot/internal/pkg/repository"
 	"trade-bot/pkg/utils"
-
-	"github.com/pkg/errors"
 )
 
 var (

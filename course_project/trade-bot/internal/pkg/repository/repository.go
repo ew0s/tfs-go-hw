@@ -1,14 +1,13 @@
 package repository
 
 import (
+	"github.com/go-redis/redis/v8"
+	"github.com/jmoiron/sqlx"
+
 	"trade-bot/internal/pkg/models"
 	"trade-bot/internal/pkg/repository/postgresRepo"
 	"trade-bot/internal/pkg/repository/redisRepo"
 	"trade-bot/pkg/utils"
-
-	"github.com/go-redis/redis/v8"
-
-	"github.com/jmoiron/sqlx"
 )
 
 type Authorization interface {

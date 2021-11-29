@@ -9,10 +9,10 @@ import (
 	"net/http"
 	"net/url"
 
-	"trade-bot/configs"
-
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
+
+	"trade-bot/configs"
 )
 
 var (

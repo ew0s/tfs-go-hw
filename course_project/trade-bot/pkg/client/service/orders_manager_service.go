@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/pkg/errors"
+
 	"trade-bot/pkg/client/app"
 	"trade-bot/pkg/client/models"
-
-	"github.com/pkg/errors"
 )
 
 var (

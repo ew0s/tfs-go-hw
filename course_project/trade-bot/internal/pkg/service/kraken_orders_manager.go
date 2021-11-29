@@ -3,13 +3,13 @@ package service
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
+
 	"trade-bot/internal/pkg/repository"
 	"trade-bot/internal/pkg/tradeAlgorithm"
 	"trade-bot/internal/pkg/tradeAlgorithm/types"
 	"trade-bot/internal/pkg/web"
 	"trade-bot/pkg/krakenFuturesSDK"
-
-	"github.com/pkg/errors"
 )
 
 var (

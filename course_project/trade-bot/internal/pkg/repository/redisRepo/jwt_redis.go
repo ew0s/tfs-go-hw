@@ -4,9 +4,10 @@ import (
 	"context"
 	"strconv"
 	"time"
-	"trade-bot/pkg/utils"
 
 	"github.com/go-redis/redis/v8"
+
+	"trade-bot/pkg/utils"
 )
 
 type JWTRedis struct {

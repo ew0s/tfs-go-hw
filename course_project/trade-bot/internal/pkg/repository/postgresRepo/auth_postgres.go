@@ -1,9 +1,9 @@
 package postgresRepo
 
 import (
-	"trade-bot/internal/pkg/models"
-
 	"github.com/jmoiron/sqlx"
+
+	"trade-bot/internal/pkg/models"
 )
 
 type AuthPostgres struct {

@@ -3,10 +3,11 @@ package postgresRepo
 import (
 	"errors"
 	"fmt"
-	"trade-bot/configs"
 
 	_ "github.com/jackc/pgx/stdlib" // driver for sqlx
 	"github.com/jmoiron/sqlx"
+
+	"trade-bot/configs"
 )
 
 var (

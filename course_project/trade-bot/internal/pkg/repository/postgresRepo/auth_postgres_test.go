@@ -1,12 +1,12 @@
 package postgresRepo
 
 import (
-	"testing"
-	"trade-bot/internal/pkg/models"
-
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
+
+	"testing"
+	"trade-bot/internal/pkg/models"
 )
 
 func TestAuthPostgres_CreateUser(t *testing.T) {

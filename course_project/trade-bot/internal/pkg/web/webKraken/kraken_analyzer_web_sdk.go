@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"trade-bot/pkg/krakenFuturesWSSDK"
-
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
+	"trade-bot/pkg/krakenFuturesWSSDK"
 )
 
 var (

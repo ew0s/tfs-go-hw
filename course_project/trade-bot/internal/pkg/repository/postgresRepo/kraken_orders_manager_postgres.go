@@ -1,11 +1,10 @@
 package postgresRepo
 
 import (
-	"trade-bot/internal/pkg/models"
-
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 
-	"github.com/jmoiron/sqlx"
+	"trade-bot/internal/pkg/models"
 )
 
 var (

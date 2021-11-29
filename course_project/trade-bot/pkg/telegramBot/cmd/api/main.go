@@ -4,16 +4,17 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"trade-bot/configs"
-	"trade-bot/pkg/client/app"
-	"trade-bot/pkg/client/service"
-	"trade-bot/pkg/telegramBot"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+
+	"trade-bot/configs"
+	"trade-bot/pkg/client/app"
+	"trade-bot/pkg/client/service"
+	"trade-bot/pkg/telegramBot"
 )
 
 var (
