@@ -5,7 +5,7 @@ const BuySide = "buy"
 
 type SendOrderStatus string
 
-func (s SendOrderStatus) IsSucessStatus() bool {
+func (s SendOrderStatus) IsSuccessStatus() bool {
 	statuses := map[string]struct{}{"placed": {}, "cancelled": {}}
 	if _, ok := statuses[string(s)]; ok {
 		return true
@@ -15,7 +15,7 @@ func (s SendOrderStatus) IsSucessStatus() bool {
 
 type EditOrderStatus string
 
-func (s EditOrderStatus) IsSucessStatus() bool {
+func (s EditOrderStatus) IsSuccessStatus() bool {
 	statuses := map[string]struct{}{"edited": {}}
 	if _, ok := statuses[string(s)]; ok {
 		return true
@@ -25,7 +25,7 @@ func (s EditOrderStatus) IsSucessStatus() bool {
 
 type CancelOrderStatus string
 
-func (s CancelOrderStatus) IsSucessStatus() bool {
+func (s CancelOrderStatus) IsSuccessStatus() bool {
 	statuses := map[string]struct{}{"cancelled": {}}
 	if _, ok := statuses[string(s)]; ok {
 		return true
@@ -35,7 +35,7 @@ func (s CancelOrderStatus) IsSucessStatus() bool {
 
 type CancelAllOrdersStatus string
 
-func (s CancelAllOrdersStatus) IsSucessStatus() bool {
+func (s CancelAllOrdersStatus) IsSuccessStatus() bool {
 	statuses := map[string]struct{}{"cancelled": {}}
 	if _, ok := statuses[string(s)]; ok {
 		return true

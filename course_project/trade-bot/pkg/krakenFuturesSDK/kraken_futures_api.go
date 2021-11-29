@@ -18,16 +18,16 @@ import (
 )
 
 var (
-	ErrDoRequest               = errors.New("do request")
-	ErrNilTyp                  = errors.New("nil typ")
-	ErrCouldntCreateRequest    = errors.New("could not create request")
-	ErrCouldntExecuteRequest   = errors.New("could not execute request")
-	ErrCouldntReadBody         = errors.New("could not read body")
-	ErrCouldntParseContentType = errors.New("could noy parse content type")
-	ErrInvalidContentType      = errors.New("invalid content type")
-	ErrCouldntUnmarshalBody    = errors.New("could not unamrshal body")
-	ErrValidateSendStatus      = errors.New("validate send status")
-	ErrEmptyOrderEvents        = errors.New("empty order events")
+	ErrDoRequest                = errors.New("do request")
+	ErrNilTyp                   = errors.New("nil typ")
+	ErrCouldNotCreateRequest    = errors.New("could not create request")
+	ErrCouldNotExecuteRequest   = errors.New("could not execute request")
+	ErrCouldNotReadBody         = errors.New("could not read body")
+	ErrCouldNotParseContentType = errors.New("could noy parse content type")
+	ErrInvalidContentType       = errors.New("invalid content type")
+	ErrCouldNotUnmarshalBody    = errors.New("could not unmarshal body")
+	ErrValidateSendStatus       = errors.New("validate send status")
+	ErrEmptyOrderEvents         = errors.New("empty order events")
 )
 
 const (
@@ -220,7 +220,7 @@ func (a *API) doRequest(reqType string, reqURL string, headers map[string]string
 	// Create request
 	req, err := http.NewRequest(reqType, reqURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %s: %w", ErrDoRequest, ErrCouldntCreateRequest, err)
+		return nil, fmt.Errorf("%s: %s: %w", ErrDoRequest, ErrCouldNotCreateRequest, err)
 	}
 
 	req.Header.Add("User-Agent", APIUserAgent)
@@ -232,20 +232,20 @@ func (a *API) doRequest(reqType string, reqURL string, headers map[string]string
 	// Execute request
 	resp, err := a.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %s: %w", ErrDoRequest, ErrCouldntExecuteRequest, err)
+		return nil, fmt.Errorf("%s: %s: %w", ErrDoRequest, ErrCouldNotExecuteRequest, err)
 	}
 	defer resp.Body.Close()
 
 	// Read request
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %s: %w", ErrDoRequest, ErrCouldntReadBody, err)
+		return nil, fmt.Errorf("%s: %s: %w", ErrDoRequest, ErrCouldNotReadBody, err)
 	}
 
 	// validate content type
 	contentType, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
 	if err != nil {
-		return nil, fmt.Errorf("%s: %s: %w", ErrDoRequest, ErrCouldntParseContentType, err)
+		return nil, fmt.Errorf("%s: %s: %w", ErrDoRequest, ErrCouldNotParseContentType, err)
 	}
 	if contentType != "application/json" {
 		return nil, fmt.Errorf("%s: %s: %s.\n%s",
@@ -256,7 +256,7 @@ func (a *API) doRequest(reqType string, reqURL string, headers map[string]string
 
 	err = json.Unmarshal(body, typ)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %s: %w", ErrDoRequest, ErrCouldntUnmarshalBody, err)
+		return nil, fmt.Errorf("%s: %s: %w", ErrDoRequest, ErrCouldNotUnmarshalBody, err)
 	}
 
 	return typ, nil

@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	ErrCouldNotRollbackTrasnsaction = errors.New("could not rollback transaction")
+	ErrCouldNotRollbackTransaction = errors.New("could not rollback transaction")
 )
 
 type KrakenOrdersManagerPostgres struct {
@@ -40,14 +40,14 @@ func (k *KrakenOrdersManagerPostgres) CreateOrder(userID int, order models.Order
 		order.Side, order.Filled, order.Timestamp, order.LastUpdateTimestamp, order.LimitPrice)
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
-			return ErrCouldNotRollbackTrasnsaction
+			return ErrCouldNotRollbackTransaction
 		}
 		return err
 	}
 
 	if _, err = tx.Exec(createUsersOrdersQuery, userID, order.ID); err != nil {
 		if err := tx.Rollback(); err != nil {
-			return ErrCouldNotRollbackTrasnsaction
+			return ErrCouldNotRollbackTransaction
 		}
 		return err
 	}

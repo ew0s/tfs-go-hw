@@ -37,7 +37,7 @@ func (k *KrakenOrdersManagerWebSDK) SendOrder(args krakenFuturesSDK.SendOrderArg
 		return krakenFuturesSDK.SendStatus{}, fmt.Errorf("%s: %w", ErrSendOrder, err)
 	}
 
-	if !response.SendStatus.Status.IsSucessStatus() {
+	if !response.SendStatus.Status.IsSuccessStatus() {
 		err := fmt.Errorf("%s: status: %s", ErrInvalidStatus, response.SendStatus.Status)
 		return krakenFuturesSDK.SendStatus{}, fmt.Errorf("%s: %w", ErrSendOrder, err)
 	}
@@ -56,7 +56,7 @@ func (k *KrakenOrdersManagerWebSDK) EditOrder(args krakenFuturesSDK.EditOrderArg
 		return krakenFuturesSDK.EditStatus{}, fmt.Errorf("%s: %w", ErrEditOrder, err)
 	}
 
-	if !response.EditStatus.Status.IsSucessStatus() {
+	if !response.EditStatus.Status.IsSuccessStatus() {
 		err := fmt.Errorf("%s: status: %s", ErrInvalidStatus, response.EditStatus.Status)
 		return krakenFuturesSDK.EditStatus{}, fmt.Errorf("%s: %w", ErrEditOrder, err)
 	}
@@ -75,7 +75,7 @@ func (k *KrakenOrdersManagerWebSDK) CancelOrder(args krakenFuturesSDK.CancelOrde
 		return krakenFuturesSDK.CancelStatus{}, fmt.Errorf("%s: %w", ErrCancelOrder, err)
 	}
 
-	if !response.CancelStatus.Status.IsSucessStatus() {
+	if !response.CancelStatus.Status.IsSuccessStatus() {
 		err := fmt.Errorf("%s: status: %s", ErrInvalidStatus, response.CancelStatus.Status)
 		return krakenFuturesSDK.CancelStatus{}, fmt.Errorf("%s: %w", ErrCancelOrder, err)
 	}
@@ -94,7 +94,7 @@ func (k *KrakenOrdersManagerWebSDK) CancelAllOrders(symbol string) (krakenFuture
 		return krakenFuturesSDK.CancelAllStatus{}, fmt.Errorf("%s: %w", ErrCancelAllOrders, err)
 	}
 
-	if !response.CancelStatus.Status.IsSucessStatus() {
+	if !response.CancelStatus.Status.IsSuccessStatus() {
 		err := fmt.Errorf("%s: status: %s", ErrInvalidStatus, response.CancelStatus.Status)
 		return krakenFuturesSDK.CancelAllStatus{}, fmt.Errorf("%s: %w", ErrCancelAllOrders, err)
 	}

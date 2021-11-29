@@ -16,10 +16,10 @@ import (
 var (
 	ErrServeWS                  = errors.New("server ws")
 	ErrUnableToEstablishConnect = errors.New("unable to establish connect with kraken websocket")
-	ErrUnableToWriteMessage     = errors.New("unable to write messsage to websocket")
+	ErrUnableToWriteMessage     = errors.New("unable to write message to websocket")
 	ErrSubscribeToFeed          = errors.New("subscribe to feed")
 	ErrUnableToReadMessage      = errors.New("unable to read message from websocket")
-	ErrCouldntSubscribedToFeed  = errors.New("could not subscribe to feed")
+	ErrCouldNotSubscribeToFeed  = errors.New("could not subscribe to feed")
 	ErrConnect                  = errors.New("connect to ws")
 	ErrLoopOverWS               = errors.New("loop over ws")
 )
@@ -67,12 +67,12 @@ func (a *WSAPI) Heartbeat(ctx context.Context) (<-chan *HeartbeatSubscriptionDat
 	return heartbeatCh, nil
 }
 
-func (a *WSAPI) CandlesTrade(ctx context.Context, feed string, producIDs []string) (<-chan *CandlesTradeData, error) {
+func (a *WSAPI) CandlesTrade(ctx context.Context, feed string, productIDs []string) (<-chan *CandlesTradeData, error) {
 	candlesTradeCh := make(chan *CandlesTradeData)
 	candlesArgs := KrakenSendMessageArguments{
 		Event:      "subscribe",
 		Feed:       feed,
-		ProductIDs: producIDs,
+		ProductIDs: productIDs,
 	}
 
 	dataCh, errCh, err := a.serveWS(ctx, candlesArgs, &CandlesTradeData{})
@@ -143,7 +143,7 @@ func (a *WSAPI) sendEvent(conn *websocket.Conn, args KrakenSendMessageArguments)
 	if err != nil {
 		return response, fmt.Errorf("%s: %s: %w", ErrSubscribeToFeed, ErrUnableToReadMessage, err)
 	} else if response.Event != "subscribed" {
-		return response, fmt.Errorf("%s: %s", ErrSubscribeToFeed, ErrCouldntSubscribedToFeed)
+		return response, fmt.Errorf("%s: %s", ErrSubscribeToFeed, ErrCouldNotSubscribeToFeed)
 	}
 
 	return response, nil

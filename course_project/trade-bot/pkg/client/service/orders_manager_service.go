@@ -13,7 +13,7 @@ import (
 
 var (
 	ErrSendOrder    = errors.New("send order")
-	ErrStratTrading = errors.New("strat trading")
+	ErrStartTrading = errors.New("start trading")
 )
 
 type OrdersManagerService struct {
@@ -47,12 +47,12 @@ func (s *OrdersManagerService) SendOrder(input models.SendOrderInput) (models.Se
 func (s *OrdersManagerService) StartTrading(ctx context.Context, input models.StartTradingInput) (<-chan *models.StartTradingResponse, <-chan error, error) {
 	req, err := s.client.NewWsRequest("/orderManager/ws/start-trade", input.JWTToken)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", ErrStratTrading, err)
+		return nil, nil, fmt.Errorf("%s: %w", ErrStartTrading, err)
 	}
 
 	conn, err := s.client.DoWS(req, input)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", ErrStratTrading, err)
+		return nil, nil, fmt.Errorf("%s: %w", ErrStartTrading, err)
 	}
 
 	var output models.StartTradingResponse

@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	ErrStartAnalyzing     = errors.New("strat analyzing")
+	ErrStartAnalyzing     = errors.New("start analyzing")
 	ErrUnableToGetCandles = errors.New("unable to get candles")
 )
 

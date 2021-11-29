@@ -105,7 +105,7 @@ func (b *BotMan) ServeTelegram() {
 				}
 
 				b.usersJWT[update.Message.From.UserName] = token
-				successMessage := tgbotapi.NewMessage(chatID, utils.SignInSuccessMessgae)
+				successMessage := tgbotapi.NewMessage(chatID, utils.SignInSuccessMessage)
 				b.sendMessage(chatID, successMessage)
 
 			case logoutCommand:
@@ -126,7 +126,7 @@ func (b *BotMan) ServeTelegram() {
 				}
 
 				delete(b.usersJWT, update.Message.From.UserName)
-				successMessage := tgbotapi.NewMessage(chatID, utils.LogoutSuccessMessgae)
+				successMessage := tgbotapi.NewMessage(chatID, utils.LogoutSuccessMessage)
 				b.sendMessage(chatID, successMessage)
 
 			case sendOrderCommand:
@@ -170,7 +170,7 @@ func (b *BotMan) ServeTelegram() {
 					continue
 				}
 
-				message = tgbotapi.NewMessage(chatID, utils.StartTardingWillNotifyMessage)
+				message = tgbotapi.NewMessage(chatID, utils.StartTradingWillNotifyMessage)
 				b.sendMessage(chatID, message)
 
 			default:
@@ -322,7 +322,7 @@ func (b *BotMan) executeSignIn(updates tgbotapi.UpdatesChannel) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	return resp.AcessToken, nil
+	return resp.AccessToken, nil
 }
 
 func (b *BotMan) getSignInInput(updates tgbotapi.UpdatesChannel) (models.SignInInput, error) {

@@ -19,13 +19,13 @@ var (
 
 type KrakenOrdersManagerService struct {
 	sdk    web.KrakenOrdersManager
-	rpeo   repository.KrakenOrdersManager
+	repo   repository.KrakenOrdersManager
 	trader tradeAlgorithm.Trader
 }
 
-func NewKrakenOrdersManagerService(sdk web.KrakenOrdersManager, rpeo repository.KrakenOrdersManager,
+func NewKrakenOrdersManagerService(sdk web.KrakenOrdersManager, repo repository.KrakenOrdersManager,
 	trader tradeAlgorithm.Trader) *KrakenOrdersManagerService {
-	return &KrakenOrdersManagerService{sdk: sdk, rpeo: rpeo, trader: trader}
+	return &KrakenOrdersManagerService{sdk: sdk, repo: repo, trader: trader}
 }
 
 func (k *KrakenOrdersManagerService) SendOrder(userID int, args krakenFuturesSDK.SendOrderArguments) (string, error) {
@@ -39,7 +39,7 @@ func (k *KrakenOrdersManagerService) SendOrder(userID int, args krakenFuturesSDK
 		return "", fmt.Errorf("%s: %w", ErrSendOrderServiceMethod, err)
 	}
 
-	if err := k.rpeo.CreateOrder(userID, order); err != nil {
+	if err := k.repo.CreateOrder(userID, order); err != nil {
 		return "", fmt.Errorf("%s: %w", ErrSendOrderServiceMethod, err)
 	}
 
@@ -59,7 +59,7 @@ func (k *KrakenOrdersManagerService) StartTrading(userID int, details types.Trad
 		return "", fmt.Errorf("%s: %w", ErrStartTradingService, err)
 	}
 
-	order, err := k.rpeo.GetOrder(orderID)
+	order, err := k.repo.GetOrder(orderID)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", ErrStartTradingService, err)
 	}

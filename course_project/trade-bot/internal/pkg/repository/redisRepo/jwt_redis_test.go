@@ -42,7 +42,7 @@ func TestJWTRedis_CreateJWT(t *testing.T) {
 				userID: 1,
 				td: utils.TokenDetails{
 					AccessToken: "token",
-					AccessUUID:  "acessUUID",
+					AccessUUID:  "accessUUID",
 					AtExpires:   1,
 				},
 			},
@@ -90,7 +90,7 @@ func TestJWTRedis_GetJWTUserID(t *testing.T) {
 				userID := 1
 				td := utils.TokenDetails{
 					AccessToken: "token",
-					AccessUUID:  "acessUUID",
+					AccessUUID:  "accessUUID",
 				}
 
 				errAccess := r.client.Set(context.Background(), td.AccessUUID, strconv.Itoa(userID), 0).Err()
@@ -99,7 +99,7 @@ func TestJWTRedis_GetJWTUserID(t *testing.T) {
 				}
 			},
 			ad: utils.AccessDetails{
-				AccessUUID: "acessUUID",
+				AccessUUID: "accessUUID",
 			},
 			want: 1,
 		},
@@ -107,7 +107,7 @@ func TestJWTRedis_GetJWTUserID(t *testing.T) {
 			name:    "Key does not exist",
 			prepare: func() {},
 			ad: utils.AccessDetails{
-				AccessUUID: "acessUUID",
+				AccessUUID: "accessUUID",
 			},
 			wantErr: true,
 		},
@@ -154,7 +154,7 @@ func TestJWTRedis_DeleteJWT(t *testing.T) {
 				userID := 1
 				td := utils.TokenDetails{
 					AccessToken: "token",
-					AccessUUID:  "acessUUID",
+					AccessUUID:  "accessUUID",
 				}
 
 				errAccess := r.client.Set(context.Background(), td.AccessUUID, strconv.Itoa(userID), 0).Err()
@@ -163,7 +163,7 @@ func TestJWTRedis_DeleteJWT(t *testing.T) {
 				}
 			},
 			ad: utils.AccessDetails{
-				AccessUUID: "acessUUID",
+				AccessUUID: "accessUUID",
 			},
 			wantErr: false,
 		},

@@ -12,7 +12,7 @@ Here is bot commands:
 const HelpMessage = `
 Commands 📟:
 	🔵 /help - list descriptions for commands
-	🔵 /sign_up - registrate you in trading bot system
+	🔵 /sign_up - register you in trading bot system
 	🔵 /exit_from_sign_up - stop getting input data to register you in the bot
 	🔵 /sign_in - login you in trading bot system and allow to trade on kraken futures
 	🔵 /exit_from_sign_in - stop getting input data to login you in the bot
@@ -62,7 +62,7 @@ const SignInErrMessage = `
 ⛔ Unable to continue further execution of sign in due to
 `
 
-const SignInSuccessMessgae = `
+const SignInSuccessMessage = `
 ✅ User successfully logged in!
 `
 
@@ -70,7 +70,7 @@ const LogoutErrMessage = `
 ⛔ Unable to continue further execution of logout due to
 `
 
-const LogoutSuccessMessgae = `
+const LogoutSuccessMessage = `
 ✅ User successfully logged out!
 `
 
@@ -112,7 +112,7 @@ const StartTradingErrMessage = `
 ⛔ Unable to continue further execution of start trading due to
 `
 
-const StartTardingWillNotifyMessage = `
+const StartTradingWillNotifyMessage = `
 ⌛ Bot will notify you when trading will stop
 `
 

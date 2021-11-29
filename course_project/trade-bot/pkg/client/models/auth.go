@@ -19,8 +19,8 @@ type SignInInput struct {
 }
 
 type SignInResponse struct {
-	AcessToken string `json:"access_token"`
-	Message    string `json:"message"`
+	AccessToken string `json:"access_token"`
+	Message     string `json:"message"`
 }
 
 type LogoutInput struct {

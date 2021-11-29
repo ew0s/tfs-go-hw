@@ -17,7 +17,7 @@ import (
 
 var (
 	ErrDoWS                       = errors.New("do ws")
-	ErrUnableToConnectToWebscoket = errors.New("unable to connect to websocket")
+	ErrUnableToConnectToWebsocket = errors.New("unable to connect to websocket")
 )
 
 const maxEstablishConnectCounter = 5
@@ -81,7 +81,7 @@ func (c *Client) DoWS(req *http.Request, typ interface{}) (*websocket.Conn, erro
 		return conn, nil
 	}
 
-	return nil, fmt.Errorf("%s: %s", ErrDoWS, ErrUnableToConnectToWebscoket)
+	return nil, fmt.Errorf("%s: %s", ErrDoWS, ErrUnableToConnectToWebsocket)
 }
 
 func (c *Client) LoopOverWS(ctx context.Context, conn *websocket.Conn, typ interface{}) (<-chan interface{}, <-chan error) {
