@@ -1,12 +1,14 @@
 package handler
 
 import (
-	"trade-bot/internal/pkg/service"
-
+	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/websocket"
+	swaggerfiles "github.com/swaggo/files"     // swagger embed files
+	ginSwagger "github.com/swaggo/gin-swagger" // gin-swagger middleware
 
-	"github.com/gin-gonic/gin"
+	_ "trade-bot/docs" // docs for swagger
+	"trade-bot/internal/pkg/service"
 )
 
 type Handler struct {
@@ -23,6 +25,8 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
+
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
 	auth := router.Group("/auth")
 	{

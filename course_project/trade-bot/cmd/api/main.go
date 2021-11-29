@@ -5,6 +5,13 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/go-playground/validator/v10"
+	"github.com/gorilla/websocket"
+	"github.com/joho/godotenv"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+
 	"trade-bot/configs"
 	"trade-bot/internal/app"
 	"trade-bot/internal/pkg/handler"
@@ -16,17 +23,6 @@ import (
 	"trade-bot/internal/pkg/web"
 	"trade-bot/pkg/krakenFuturesSDK"
 	"trade-bot/pkg/krakenFuturesWSSDK"
-
-	"github.com/go-playground/validator/v10"
-	"github.com/gorilla/websocket"
-
-	"github.com/joho/godotenv"
-
-	"github.com/pkg/errors"
-
-	"github.com/spf13/viper"
-
-	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -42,6 +38,17 @@ const (
 	publicAPIKey  = "PUBLIC_API_KEY"
 	privateAPIKey = "PRIVATE_API_KEY"
 )
+
+// @title Trade-bot API
+// @version 1.0
+// @description API Server for Trade-bot Application
+
+// @host localhost:8000
+// @BasePath /
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
 
 func main() {
 	config, err := initConfig()
