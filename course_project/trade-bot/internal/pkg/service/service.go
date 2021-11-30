@@ -18,8 +18,8 @@ type Authorization interface {
 }
 
 type KrakenOrdersManager interface {
-	SendOrder(userID int, args krakenFuturesSDK.SendOrderArguments) (string, error)
-	StartTrading(userID int, details types.TradingDetails) (string, error)
+	SendOrder(userID int, args krakenFuturesSDK.SendOrderArguments) (models.Order, error)
+	StartTrading(userID int, details types.TradingDetails) (models.Order, error)
 }
 
 type Service struct {

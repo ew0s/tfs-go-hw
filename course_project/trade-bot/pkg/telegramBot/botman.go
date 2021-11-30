@@ -151,14 +151,15 @@ func (b *BotMan) ServeTelegram() {
 				message := tgbotapi.NewMessage(chatID, utils.SendOrderMessage)
 				b.sendMessage(chatID, message)
 
-				if err := b.executeSendOrder(updates, token); err != nil {
+				resp, err := b.executeSendOrder(updates, token)
+				if err != nil {
 					log.Warn(err)
 					errMessage := tgbotapi.NewMessage(chatID, fmt.Sprintf("%s: %s", utils.SendOrderErrMessage, err.Error()))
 					b.sendMessage(chatID, errMessage)
 					continue
 				}
 
-				successMessage := tgbotapi.NewMessage(chatID, utils.SendOrderSuccessMessage)
+				successMessage := tgbotapi.NewMessage(chatID, fmt.Sprintf("%s\n%s", utils.SendOrderSuccessMessage, resp.String()))
 				b.sendMessage(chatID, successMessage)
 
 			case startTradingCommand:
@@ -226,7 +227,7 @@ func (b *BotMan) executeStartTrading(chatID int64, updates tgbotapi.UpdatesChann
 
 	go func(chatID int64) {
 		for val := range startTradingResp {
-			message := tgbotapi.NewMessage(chatID, fmt.Sprintf("%s\nOrder ID: %s", utils.StartTradingSuccessMessage, val.OrderID))
+			message := tgbotapi.NewMessage(chatID, fmt.Sprintf("%s\nOrder: %s", utils.StartTradingSuccessMessage, val.String()))
 			b.sendMessage(chatID, message)
 		}
 	}(chatID)
@@ -278,15 +279,19 @@ func (b *BotMan) getStartTradingInput(updates tgbotapi.UpdatesChannel) (models.S
 	return models.StartTradingInput{}, ErrUnableToReadFromUpdatesChannel
 }
 
-func (b *BotMan) executeSendOrder(updates tgbotapi.UpdatesChannel, token string) error {
+func (b *BotMan) executeSendOrder(updates tgbotapi.UpdatesChannel, token string) (models.SendOrderResponse, error) {
 	input, err := b.getSendOrderInput(updates)
 	if err != nil {
-		return err
+		return models.SendOrderResponse{}, err
 	}
 	input.JWTToken = token
 
-	_, err = b.tradeBotServices.OrdersManager.SendOrder(input)
-	return err
+	resp, err := b.tradeBotServices.OrdersManager.SendOrder(input)
+	if err != nil {
+		return models.SendOrderResponse{}, err
+	}
+
+	return resp, nil
 }
 
 func (b *BotMan) getSendOrderInput(updates tgbotapi.UpdatesChannel) (models.SendOrderInput, error) {

@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"trade-bot/internal/pkg/models"
 
 	"github.com/pkg/errors"
 
@@ -28,25 +29,25 @@ func NewKrakenOrdersManagerService(sdk web.KrakenOrdersManager, repo repository.
 	return &KrakenOrdersManagerService{sdk: sdk, repo: repo, trader: trader}
 }
 
-func (k *KrakenOrdersManagerService) SendOrder(userID int, args krakenFuturesSDK.SendOrderArguments) (string, error) {
+func (k *KrakenOrdersManagerService) SendOrder(userID int, args krakenFuturesSDK.SendOrderArguments) (models.Order, error) {
 	sendStatus, err := k.sdk.SendOrder(args)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", ErrSendOrderServiceMethod, err)
+		return models.Order{}, fmt.Errorf("%s: %w", ErrSendOrderServiceMethod, err)
 	}
 
 	order, err := k.sdk.ParseSendStatusToExecutedOrder(userID, sendStatus)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", ErrSendOrderServiceMethod, err)
+		return models.Order{}, fmt.Errorf("%s: %w", ErrSendOrderServiceMethod, err)
 	}
 
 	if err := k.repo.CreateOrder(userID, order); err != nil {
-		return "", fmt.Errorf("%s: %w", ErrSendOrderServiceMethod, err)
+		return models.Order{}, fmt.Errorf("%s: %w", ErrSendOrderServiceMethod, err)
 	}
 
-	return order.ID, nil
+	return order, nil
 }
 
-func (k *KrakenOrdersManagerService) StartTrading(userID int, details types.TradingDetails) (string, error) {
+func (k *KrakenOrdersManagerService) StartTrading(userID int, details types.TradingDetails) (models.Order, error) {
 	sendArgs := krakenFuturesSDK.SendOrderArguments{
 		OrderType: details.OrderType,
 		Symbol:    details.Symbol,
@@ -54,29 +55,24 @@ func (k *KrakenOrdersManagerService) StartTrading(userID int, details types.Trad
 		Size:      details.Size,
 	}
 
-	orderID, err := k.SendOrder(userID, sendArgs)
+	startOrder, err := k.SendOrder(userID, sendArgs)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", ErrStartTradingService, err)
+		return models.Order{}, fmt.Errorf("%s: %w", ErrStartTradingService, err)
 	}
 
-	order, err := k.repo.GetOrder(orderID)
-	if err != nil {
-		return "", fmt.Errorf("%s: %w", ErrStartTradingService, err)
-	}
-
-	details.BuyPrice = order.LimitPrice
+	details.BuyPrice = startOrder.LimitPrice
 
 	if err := k.trader.StartAnalyzing(details); err != nil {
-		return "", fmt.Errorf("%s: %w", ErrStartTradingService, err)
+		return models.Order{}, fmt.Errorf("%s: %w", ErrStartTradingService, err)
 	}
 
 	opositeArgs := sendArgs
 	opositeArgs.ChangeToOpositeOrderSide()
 
-	orderID, err = k.SendOrder(userID, opositeArgs)
+	finishOrder, err := k.SendOrder(userID, opositeArgs)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", ErrStartTradingService, err)
+		return models.Order{}, fmt.Errorf("%s: %w", ErrStartTradingService, err)
 	}
 
-	return orderID, nil
+	return finishOrder, nil
 }

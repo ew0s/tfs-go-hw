@@ -36,15 +36,13 @@ func (h *Handler) sendOrder(c *gin.Context) {
 		return
 	}
 
-	orderID, err := h.services.KrakenOrdersManager.SendOrder(userID, input)
+	order, err := h.services.KrakenOrdersManager.SendOrder(userID, input)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, map[string]interface{}{
-		"order_id": orderID,
-	})
+	c.JSON(http.StatusOK, order)
 }
 
 func (h *Handler) startTrade(c *gin.Context) {
@@ -72,16 +70,13 @@ func (h *Handler) startTrade(c *gin.Context) {
 		return
 	}
 
-	orderID, err := h.services.KrakenOrdersManager.StartTrading(userID, td)
+	order, err := h.services.KrakenOrdersManager.StartTrading(userID, td)
 	if err != nil {
 		newWebsocketErrResponse(c, http.StatusInternalServerError, conn, err.Error())
 		return
 	}
 
-	output := map[string]interface{}{
-		"order_id": orderID,
-	}
-	if err := conn.WriteJSON(output); err != nil {
+	if err := conn.WriteJSON(order); err != nil {
 		newWebsocketErrResponse(c, http.StatusInternalServerError, conn, err.Error())
 		return
 	}

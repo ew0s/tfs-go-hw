@@ -1,5 +1,10 @@
 package models
 
+import (
+	"fmt"
+	"time"
+)
+
 type SendOrderInput struct {
 	OrderType string `json:"order_type"`
 	Symbol    string `json:"symbol"`
@@ -9,8 +14,35 @@ type SendOrderInput struct {
 }
 
 type SendOrderResponse struct {
-	OrderID string `json:"order_id"`
-	Message string `json:"message"`
+	ID                  string    `json:"id"`
+	UserID              int       `json:"user_id"`
+	ClientOrderID       string    `json:"client_order_id"`
+	Type                string    `json:"type"`
+	Symbol              string    `json:"symbol"`
+	Quantity            int       `json:"quantity"`
+	Side                string    `json:"side"`
+	Filled              int       `json:"filled"`
+	Timestamp           time.Time `json:"timestamp"`
+	LastUpdateTimestamp time.Time `json:"last_update_timestamp"`
+	LimitPrice          int       `json:"limit_price"`
+	Message             string    `json:"message,omitempty"`
+}
+
+func (r *SendOrderResponse) String() string {
+	if r.Message != "" {
+		return fmt.Sprintf("Message: %s", r.Message)
+	}
+
+	return fmt.Sprintf(`
+		order_id:   %s,
+		type:       %s,
+		symbol:     %s,
+		quantity:   %d,
+		side:       %s,
+		filled:     %d,
+		timestamp:  %s,
+		limitPrice: %d,
+	`, r.ID, r.Type, r.Symbol, r.Quantity, r.Side, r.Filled, r.Timestamp, r.LimitPrice)
 }
 
 type StartTradingInput struct {
@@ -24,5 +56,33 @@ type StartTradingInput struct {
 }
 
 type StartTradingResponse struct {
-	OrderID string `json:"order_id"`
+	ID                  string    `json:"id"`
+	UserID              int       `json:"user_id"`
+	ClientOrderID       string    `json:"client_order_id"`
+	Type                string    `json:"type"`
+	Symbol              string    `json:"symbol"`
+	Quantity            int       `json:"quantity"`
+	Side                string    `json:"side"`
+	Filled              int       `json:"filled"`
+	Timestamp           time.Time `json:"timestamp"`
+	LastUpdateTimestamp time.Time `json:"last_update_timestamp"`
+	LimitPrice          int       `json:"limit_price"`
+	Message             string    `json:"message,omitempty"`
+}
+
+func (r *StartTradingResponse) String() string {
+	if r.Message != "" {
+		return fmt.Sprintf("Message: %s", r.Message)
+	}
+
+	return fmt.Sprintf(`
+		order_id:   %s,
+		type:       %s,
+		symbol:     %s,
+		quantity:   %d,
+		side:       %s,
+		filled:     %d,
+		timestamp:  %s,
+		limitPrice: %d,
+	`, r.ID, r.Type, r.Symbol, r.Quantity, r.Side, r.Filled, r.Timestamp, r.LimitPrice)
 }
