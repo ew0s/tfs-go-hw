@@ -75,8 +75,10 @@ func (b *BotMan) ServeTelegram() {
 
 			case signUpCommand:
 				if _, ok := b.usersJWT[update.Message.From.UserName]; ok {
+					log.Warn(ErrUserAlreadyLoggedIn)
 					errMessage := tgbotapi.NewMessage(chatID, fmt.Sprintf("%s: %s", utils.SignUpErrMessage, ErrUserAlreadyLoggedIn))
 					b.sendMessage(chatID, errMessage)
+					continue
 				}
 
 				message := tgbotapi.NewMessage(chatID, utils.SignUpMessage)
@@ -93,6 +95,13 @@ func (b *BotMan) ServeTelegram() {
 				}
 
 			case signInCommand:
+				if _, ok := b.usersJWT[update.Message.From.UserName]; ok {
+					log.Warn(ErrUserAlreadyLoggedIn)
+					errMessage := tgbotapi.NewMessage(chatID, fmt.Sprintf("%s: %s", utils.SignInErrMessage, ErrUserAlreadyLoggedIn))
+					b.sendMessage(chatID, errMessage)
+					continue
+				}
+
 				message := tgbotapi.NewMessage(chatID, utils.SignInMessage)
 				message.ReplyToMessageID = update.Message.MessageID
 				b.sendMessage(chatID, message)
