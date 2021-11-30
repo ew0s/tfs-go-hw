@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"trade-bot/internal/pkg/models"
 	"trade-bot/internal/pkg/repository"
 	"trade-bot/internal/pkg/tradeAlgorithm"
@@ -19,7 +20,7 @@ type Authorization interface {
 
 type KrakenOrdersManager interface {
 	SendOrder(userID int, args krakenFuturesSDK.SendOrderArguments) (models.Order, error)
-	StartTrading(userID int, details types.TradingDetails) (models.Order, error)
+	StartTrading(ctx context.Context, userID int, details types.TradingDetails) (models.Order, error)
 }
 
 type Service struct {

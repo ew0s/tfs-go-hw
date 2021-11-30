@@ -29,10 +29,7 @@ func NewStopLossTakeProfitAlgo(krakenAnalyzer web.KrakenAnalyzer) *StopLossTakeP
 	}
 }
 
-func (a *StopLossTakeProfitAlgo) StartAnalyzing(details types.TradingDetails) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
+func (a *StopLossTakeProfitAlgo) StartAnalyzing(ctx context.Context, details types.TradingDetails) error {
 	candles, err := a.krakenWebsocketSDK.LookForCandles(ctx, krakenFuturesWSSDK.OneMinuteCandlesFeed, []string{details.Symbol})
 	if err != nil {
 		return fmt.Errorf("%s: %w", ErrStartAnalyzing, err)

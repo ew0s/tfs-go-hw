@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"trade-bot/internal/pkg/models"
 
@@ -47,7 +48,7 @@ func (k *KrakenOrdersManagerService) SendOrder(userID int, args krakenFuturesSDK
 	return order, nil
 }
 
-func (k *KrakenOrdersManagerService) StartTrading(userID int, details types.TradingDetails) (models.Order, error) {
+func (k *KrakenOrdersManagerService) StartTrading(ctx context.Context, userID int, details types.TradingDetails) (models.Order, error) {
 	sendArgs := krakenFuturesSDK.SendOrderArguments{
 		OrderType: details.OrderType,
 		Symbol:    details.Symbol,
@@ -62,7 +63,7 @@ func (k *KrakenOrdersManagerService) StartTrading(userID int, details types.Trad
 
 	details.BuyPrice = startOrder.Price
 
-	if err := k.trader.StartAnalyzing(details); err != nil {
+	if err := k.trader.StartAnalyzing(ctx, details); err != nil {
 		return models.Order{}, fmt.Errorf("%s: %w", ErrStartTradingService, err)
 	}
 

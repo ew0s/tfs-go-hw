@@ -266,12 +266,17 @@ func (b *BotMan) getStartTradingInput(updates tgbotapi.UpdatesChannel) (models.S
 			}
 
 			return models.StartTradingInput{
-				OrderType:        "mkt",
-				Symbol:           inputValues[0],
-				Side:             inputValues[1],
-				Size:             uint(amount),
-				StopLossBorder:   stopLoss,
-				TakeProfitBorder: takeProfit,
+				Event: "start_trading",
+				TradingDetails: models.StartTradingDetails{
+					SendOrderInput: models.SendOrderInput{
+						OrderType: "mkt",
+						Symbol:    inputValues[0],
+						Side:      inputValues[1],
+						Size:      uint(amount),
+					},
+					StopLossBorder:   uint(stopLoss),
+					TakeProfitBorder: uint(takeProfit),
+				},
 			}, nil
 		}
 	}

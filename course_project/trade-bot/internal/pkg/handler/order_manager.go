@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -45,6 +46,14 @@ func (h *Handler) sendOrder(c *gin.Context) {
 	c.JSON(http.StatusOK, order)
 }
 
+type tradingDetails struct {
+	Event          string               `json:"event"`
+	TradingDetails types.TradingDetails `json:"trading_details,omitempty"`
+}
+
+const cancelEvent = "cancel_trading"
+const startTrading = "start_trading"
+
 func (h *Handler) startTrade(c *gin.Context) {
 	conn, err := h.wsUpgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
@@ -59,20 +68,54 @@ func (h *Handler) startTrade(c *gin.Context) {
 		return
 	}
 
-	var td types.TradingDetails
-	if err := conn.ReadJSON(&td); err != nil {
+	var input tradingDetails
+	if err := conn.ReadJSON(&input); err != nil {
 		newWebsocketErrResponse(c, http.StatusInternalServerError, conn, err.Error())
 		return
 	}
-
-	if err := h.validate.Struct(td); err != nil {
+	if err := h.validate.Struct(input); err != nil {
+		newWebsocketErrResponse(c, http.StatusBadRequest, conn, err.Error())
+		return
+	}
+	if input.Event != startTrading {
 		newWebsocketErrResponse(c, http.StatusBadRequest, conn, err.Error())
 		return
 	}
 
-	order, err := h.services.KrakenOrdersManager.StartTrading(userID, td)
-	if err != nil {
+	ctx, cancel := context.WithCancel(context.Background())
+	var isCancelled bool
+	defer cancel()
+
+	go func() {
+		defer cancel()
+
+		var tradingDetails tradingDetails
+		for {
+			if err := conn.ReadJSON(&tradingDetails); err != nil {
+				return
+			}
+			if tradingDetails.Event == cancelEvent {
+				isCancelled = true
+				return
+			}
+		}
+	}()
+
+	order, err := h.services.KrakenOrdersManager.StartTrading(ctx, userID, input.TradingDetails)
+	if err != nil && !isCancelled {
 		newWebsocketErrResponse(c, http.StatusInternalServerError, conn, err.Error())
+		return
+	}
+
+	if isCancelled {
+		err := conn.WriteJSON(struct {
+			Message string `json:"message"`
+		}{Message: "trading have been canceled"})
+
+		if err != nil {
+			newWebsocketErrResponse(c, http.StatusInternalServerError, conn, err.Error())
+			return
+		}
 		return
 	}
 

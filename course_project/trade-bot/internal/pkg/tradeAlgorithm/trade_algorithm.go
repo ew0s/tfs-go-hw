@@ -1,13 +1,14 @@
 package tradeAlgorithm
 
 import (
+	"context"
 	"trade-bot/internal/pkg/tradeAlgorithm/algorithms"
 	"trade-bot/internal/pkg/tradeAlgorithm/types"
 	"trade-bot/internal/pkg/web"
 )
 
 type Trader interface {
-	StartAnalyzing(details types.TradingDetails) error
+	StartAnalyzing(ctx context.Context, details types.TradingDetails) error
 }
 
 type TradeAlgorithm struct {
