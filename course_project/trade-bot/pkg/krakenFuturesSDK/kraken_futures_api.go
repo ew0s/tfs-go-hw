@@ -31,7 +31,7 @@ var (
 )
 
 const (
-	APIUserAgent = "Kraken GO API Agent"
+	apiUserAgent = "Kraken GO API Agent"
 )
 
 type API struct {
@@ -223,7 +223,7 @@ func (a *API) doRequest(reqType string, reqURL string, headers map[string]string
 		return nil, fmt.Errorf("%s: %s: %w", ErrDoRequest, ErrCouldNotCreateRequest, err)
 	}
 
-	req.Header.Add("User-Agent", APIUserAgent)
+	req.Header.Add("User-Agent", apiUserAgent)
 
 	for key, value := range headers {
 		req.Header.Add(key, value)
