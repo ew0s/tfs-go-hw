@@ -60,7 +60,7 @@ func (k *KrakenOrdersManagerService) StartTrading(userID int, details types.Trad
 		return models.Order{}, fmt.Errorf("%s: %w", ErrStartTradingService, err)
 	}
 
-	details.BuyPrice = startOrder.LimitPrice
+	details.BuyPrice = startOrder.Price
 
 	if err := k.trader.StartAnalyzing(details); err != nil {
 		return models.Order{}, fmt.Errorf("%s: %w", ErrStartTradingService, err)

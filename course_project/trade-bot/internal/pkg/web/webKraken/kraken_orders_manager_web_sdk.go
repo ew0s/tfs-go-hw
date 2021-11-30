@@ -114,7 +114,7 @@ func (k *KrakenOrdersManagerWebSDK) ParseSendStatusToExecutedOrder(userID int, s
 			Symbol:              orderEvent.OrderPriorExecution.Symbol,
 			Quantity:            orderEvent.OrderPriorExecution.Quantity,
 			Side:                orderEvent.OrderPriorExecution.Side,
-			LimitPrice:          orderEvent.OrderPriorExecution.LimitPrice,
+			Price:               orderEvent.Price,
 			Filled:              orderEvent.OrderPriorExecution.Filled,
 			Timestamp:           orderEvent.OrderPriorExecution.Timestamp,
 			LastUpdateTimestamp: orderEvent.OrderPriorExecution.LastUpdateTimestamp,

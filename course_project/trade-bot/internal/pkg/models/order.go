@@ -11,5 +11,5 @@ type Order struct {
 	Filled              float64 `json:"filled" db:"filled"`
 	Timestamp           string  `json:"timestamp" db:"timestamp"`
 	LastUpdateTimestamp string  `json:"last_update_timestamp" db:"last_update_timestamp"`
-	LimitPrice          float64 `json:"limit_price" db:"limit_price"`
+	Price               float64 `json:"price" db:"price"`
 }

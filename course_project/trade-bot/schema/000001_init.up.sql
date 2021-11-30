@@ -20,7 +20,7 @@ CREATE TABLE orders
     filled                float8       not null,
     timestamp             varchar(255) not null,
     last_update_timestamp varchar(255) not null,
-    limit_price           float8
+    price                 float8
 );
 
 CREATE TABLE users_orders

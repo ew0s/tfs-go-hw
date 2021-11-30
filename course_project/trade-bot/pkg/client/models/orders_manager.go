@@ -24,7 +24,7 @@ type SendOrderResponse struct {
 	Filled              int       `json:"filled"`
 	Timestamp           time.Time `json:"timestamp"`
 	LastUpdateTimestamp time.Time `json:"last_update_timestamp"`
-	LimitPrice          int       `json:"limit_price"`
+	Price               float64   `json:"price"`
 	Message             string    `json:"message,omitempty"`
 }
 
@@ -41,8 +41,8 @@ func (r *SendOrderResponse) String() string {
 		side:       %s,
 		filled:     %d,
 		timestamp:  %s,
-		limitPrice: %d,
-	`, r.ID, r.Type, r.Symbol, r.Quantity, r.Side, r.Filled, r.Timestamp, r.LimitPrice)
+		price:      %f,
+	`, r.ID, r.Type, r.Symbol, r.Quantity, r.Side, r.Filled, r.Timestamp, r.Price)
 }
 
 type StartTradingInput struct {
@@ -66,7 +66,7 @@ type StartTradingResponse struct {
 	Filled              int       `json:"filled"`
 	Timestamp           time.Time `json:"timestamp"`
 	LastUpdateTimestamp time.Time `json:"last_update_timestamp"`
-	LimitPrice          int       `json:"limit_price"`
+	Price               float64   `json:"price"`
 	Message             string    `json:"message,omitempty"`
 }
 
@@ -83,6 +83,6 @@ func (r *StartTradingResponse) String() string {
 		side:       %s,
 		filled:     %d,
 		timestamp:  %s,
-		limitPrice: %d,
-	`, r.ID, r.Type, r.Symbol, r.Quantity, r.Side, r.Filled, r.Timestamp, r.LimitPrice)
+		price:      %f,
+	`, r.ID, r.Type, r.Symbol, r.Quantity, r.Side, r.Filled, r.Timestamp, r.Price)
 }

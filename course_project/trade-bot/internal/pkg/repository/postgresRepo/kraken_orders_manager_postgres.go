@@ -21,7 +21,7 @@ func NewKrakenOrdersManagerPostgres(db *sqlx.DB) *KrakenOrdersManagerPostgres {
 
 const createOrderQuery = `
 	INSERT INTO orders(order_id, user_id, cli_order_id, type, symbol, quantity, side, filled,
-	                  timestamp, last_update_timestamp, limit_price)
+	                  timestamp, last_update_timestamp, price)
 	VALUES($1, $2, $3, $4, $5, $6, $7, $8,
 	                  $9, $10, $11)`
 
@@ -36,7 +36,7 @@ func (k *KrakenOrdersManagerPostgres) CreateOrder(userID int, order models.Order
 	}
 
 	_, err = tx.Exec(createOrderQuery, order.ID, order.UserID, order.ClientOrderID, order.Type, order.Symbol, order.Quantity,
-		order.Side, order.Filled, order.Timestamp, order.LastUpdateTimestamp, order.LimitPrice)
+		order.Side, order.Filled, order.Timestamp, order.LastUpdateTimestamp, order.Price)
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
 			return ErrCouldNotRollbackTransaction
