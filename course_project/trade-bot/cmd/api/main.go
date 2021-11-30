@@ -1,17 +1,17 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"net/http"
-	"os"
-
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-
+	"net/http"
+	"os"
+	"os/signal"
 	"trade-bot/configs"
 	"trade-bot/internal/app"
 	"trade-bot/internal/pkg/handler"
@@ -26,12 +26,15 @@ import (
 )
 
 var (
-	ErrUnableToInitConfig       = errors.New("unable to init config files")
-	ErrReadConfig               = errors.New("read config")
-	ErrRunServer                = errors.New("run server")
-	ErrUnableToConnectToDB      = errors.New("unable to connect to database")
-	ErrUnableToConnectToJWTDB   = errors.New("unable to connect to jwt databased")
-	ErrUnableToLoadEnvVariables = errors.New("unable to load enviroment variables")
+	ErrUnableToInitConfig           = errors.New("unable to init config files")
+	ErrReadConfig                   = errors.New("read config")
+	ErrRunServer                    = errors.New("run server")
+	ErrUnableToConnectToDB          = errors.New("unable to connect to database")
+	ErrUnableToConnectToJWTDB       = errors.New("unable to connect to jwt databased")
+	ErrUnableToLoadEnvVariables     = errors.New("unable to load enviroment variables")
+	ErrCouldNotShutdownServer       = errors.New("could not shut down server normally")
+	ErrCouldNotCloseDBConnection    = errors.New("could not close db connection normally")
+	ErrCouldNotCloseRedisConnection = errors.New("could not close redis connection normally")
 )
 
 const (
@@ -58,15 +61,23 @@ func main() {
 
 	db, err := postgresRepo.NewPostgresDB(config.PostgreDatabase)
 	if err != nil {
-		db.Close()
 		log.Fatalf("%s: %s", ErrUnableToConnectToDB, err)
 	}
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Fatalf("%s: %s", ErrCouldNotCloseDBConnection, err)
+		}
+	}()
 
 	redisClient, err := redisRepo.NewRedisClient(config.RedisDatabase)
 	if err != nil {
-		redisClient.Close()
 		log.Fatalf("%s: %s", ErrUnableToConnectToJWTDB, err)
 	}
+	defer func() {
+		if err := redisClient.Close(); err != nil {
+			log.Fatalf("%s: %s", ErrCouldNotCloseRedisConnection, err)
+		}
+	}()
 
 	krakenAPI := krakenFuturesSDK.NewAPI(os.Getenv(publicAPIKey), os.Getenv(privateAPIKey), config.Kraken.APIURL)
 	krakenWSAPI := krakenFuturesWSSDK.NewWSAPI(config.KrakenWS)
@@ -87,12 +98,28 @@ func main() {
 	services := service.NewService(repo, newWeb, newTrader)
 	handlers := handler.NewHandler(services, validate, &upgrader)
 
+	interrupt := make(chan os.Signal)
+	signal.Notify(interrupt, os.Interrupt)
+
 	srv := new(app.Server)
-	if err := srv.Run(config.Server.Port, handlers.InitRoutes()); err != nil {
-		db.Close()
-		redisClient.Close()
-		log.Fatalf("%s: %s", ErrRunServer, err)
+	go func() {
+		if err := srv.Run(config.Server.Port, handlers.InitRoutes()); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("%s: %s", ErrRunServer, err)
+		}
+	}()
+
+	log.Info("Trade bot server started")
+
+	<-interrupt
+
+	log.Info("interrupt signal caught")
+	log.Info("Trade bot server shutting down")
+
+	if err := srv.Shutdown(context.Background()); err != nil {
+		log.Fatalf("%s: %s", ErrCouldNotShutdownServer, err)
 	}
+
+	log.Info("Trade bot server shut down")
 }
 
 func initConfig() (configs.Configuration, error) {
