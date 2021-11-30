@@ -3,12 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/go-playground/validator/v10"
-	"github.com/gorilla/websocket"
-	"github.com/joho/godotenv"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"net/http"
 	"os"
 	"os/signal"
@@ -23,6 +17,13 @@ import (
 	"trade-bot/internal/pkg/web"
 	"trade-bot/pkg/krakenFuturesSDK"
 	"trade-bot/pkg/krakenFuturesWSSDK"
+
+	"github.com/go-playground/validator/v10"
+	"github.com/gorilla/websocket"
+	"github.com/joho/godotenv"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -56,26 +57,26 @@ const (
 func main() {
 	config, err := initConfig()
 	if err != nil {
-		log.Fatalf("%s: %s", ErrUnableToInitConfig, err)
+		log.Panicf("%s: %s", ErrUnableToInitConfig, err)
 	}
 
 	db, err := postgresRepo.NewPostgresDB(config.PostgreDatabase)
 	if err != nil {
-		log.Fatalf("%s: %s", ErrUnableToConnectToDB, err)
+		log.Panicf("%s: %s", ErrUnableToConnectToDB, err)
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
-			log.Fatalf("%s: %s", ErrCouldNotCloseDBConnection, err)
+			log.Panicf("%s: %s", ErrCouldNotCloseDBConnection, err)
 		}
 	}()
 
 	redisClient, err := redisRepo.NewRedisClient(config.RedisDatabase)
 	if err != nil {
-		log.Fatalf("%s: %s", ErrUnableToConnectToJWTDB, err)
+		log.Panicf("%s: %s", ErrUnableToConnectToJWTDB, err)
 	}
 	defer func() {
 		if err := redisClient.Close(); err != nil {
-			log.Fatalf("%s: %s", ErrCouldNotCloseRedisConnection, err)
+			log.Panicf("%s: %s", ErrCouldNotCloseRedisConnection, err)
 		}
 	}()
 
@@ -98,13 +99,13 @@ func main() {
 	services := service.NewService(repo, newWeb, newTrader)
 	handlers := handler.NewHandler(services, validate, &upgrader)
 
-	interrupt := make(chan os.Signal)
+	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
 	srv := new(app.Server)
 	go func() {
 		if err := srv.Run(config.Server.Port, handlers.InitRoutes()); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("%s: %s", ErrRunServer, err)
+			log.Panicf("%s: %s", ErrRunServer, err)
 		}
 	}()
 
@@ -116,7 +117,7 @@ func main() {
 	log.Info("Trade bot server shutting down")
 
 	if err := srv.Shutdown(context.Background()); err != nil {
-		log.Fatalf("%s: %s", ErrCouldNotShutdownServer, err)
+		log.Panicf("%s: %s", ErrCouldNotShutdownServer, err)
 	}
 
 	log.Info("Trade bot server shut down")
