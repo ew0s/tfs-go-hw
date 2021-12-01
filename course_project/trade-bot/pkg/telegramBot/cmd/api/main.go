@@ -3,10 +3,8 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"os"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -19,35 +17,20 @@ import (
 
 var (
 	ErrReadConfig                = errors.New("read config")
-	ErrUnableToLoadEnvVariables  = errors.New("unable to load enviroment variable")
 	ErrUnableToCreateTelegramBot = errors.New("unable to create telegram bot")
 	ErrUnableToCreateClient      = errors.New("unable to create client")
 	ErrSetupBot                  = errors.New("setup bot")
 )
 
-var (
-	telegramAPIToken string
-	webhookURL       string
-)
-
-func init() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal(fmt.Errorf("%s: %s", ErrUnableToLoadEnvVariables, err))
-	}
-
-	telegramAPIToken = os.Getenv("TELEGRAM_APITOKEN")
-	webhookURL = os.Getenv("WEBHOOK_URL")
-}
-
-func setBot() (*tgbotapi.BotAPI, error) {
-	bot, err := tgbotapi.NewBotAPI(telegramAPIToken)
+func setBot(configuration configs.TelegramBotConfiguration) (*tgbotapi.BotAPI, error) {
+	bot, err := tgbotapi.NewBotAPI(configuration.APIToken)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrSetupBot, err)
 	}
 
 	log.Infof("Authorized on account: %s", bot.Self.UserName)
 
-	_, err = bot.SetWebhook(tgbotapi.NewWebhook(webhookURL))
+	_, err = bot.SetWebhook(tgbotapi.NewWebhook(configuration.WebhookURL))
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrSetupBot, err)
 	}
@@ -67,7 +50,7 @@ func main() {
 		log.Fatalf("init config: %s", err)
 	}
 
-	bot, err := setBot()
+	bot, err := setBot(config.Telegram)
 	if err != nil {
 		log.Fatalf("%s: %s", ErrUnableToCreateTelegramBot, err)
 	}

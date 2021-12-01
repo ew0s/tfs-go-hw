@@ -17,7 +17,7 @@ var (
 var redisContext = context.Background()
 
 func NewRedisClient(cfg configs.RedisDatabaseConfiguration) (*redis.Client, error) {
-	addr := ":" + cfg.Port
+	addr := cfg.Host + ":" + cfg.Port
 	if len(addr) == 0 {
 		return nil, fmt.Errorf("%s: %w", ErrNewRedisDB, ErrUnableToLocateRedisPort)
 	}

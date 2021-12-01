@@ -3,6 +3,7 @@ package configs
 type Configuration struct {
 	Server          ServerConfiguration
 	Client          ClientConfiguration
+	Telegram        TelegramBotConfiguration
 	PostgreDatabase PostgreDatabaseConfiguration
 	RedisDatabase   RedisDatabaseConfiguration
 	Kraken          KrakenConfiguration
@@ -24,6 +25,11 @@ type ClientConfiguration struct {
 	URL string
 }
 
+type TelegramBotConfiguration struct {
+	APIToken   string
+	WebhookURL string
+}
+
 type PostgreDatabaseConfiguration struct {
 	Host     string
 	Port     string
@@ -34,6 +40,7 @@ type PostgreDatabaseConfiguration struct {
 }
 
 type RedisDatabaseConfiguration struct {
+	Host string
 	Port string
 }
 
