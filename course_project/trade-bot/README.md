@@ -49,81 +49,122 @@ __When server started:__ ```url: http://{host}:{port}/swagger/index.html```
 
 ---
 
-## Installation
-
+## Local installation of server
 ### Linux/OSX
 
-```shell
-git clone {this repo}
-cd {this repo}/course_project/trade-bot
-```
+*
+    ```shell
+    git clone {this repo}
+    cd {this repo}/course_project/trade-bot
+    ```
 
-* #### Assume you have ```config.yml``` or ```config.yaml``` file in configs folder of type: 
-
-```yaml
-server:
-  port: (int) 
-  websocket:
-    readBufferSize: (int)
-    writeBufferSize: (int)
-    checkOrigin: (true | false)
-
-client:
-  # url of server
-  url: (string)
-
-postgreDatabase:
-  host: (string)
-  port: (string)
-  username: (string)
-  dbname:  (string)
-  sslmode: (string)
-
-redisDatabase:
-  port: (string)
-
-kraken:
-  apiurl: (string)
-
-krakenWS:
-  requests:
-    writeWaitInSeconds: (int)
-    pongWaitInSeconds: (int)
-    pingPeriodInSeconds: (int)
-    maxMessageSize: (int)
-  kraken:
-    wsapiurl: (string)
-```
+* #### Assume you have ```config.yml``` or ```config.yaml``` file in configs folder of type:
+    ```yaml
+    server:
+      port: (int) 
+      websocket:
+        readBufferSize: (int) 1024 by derfault
+        writeBufferSize: (int) 1024 by default
+        checkOrigin: (true | false) true by default
+    
+    client:
+      # url of server
+      url: (string)
+      
+    telegram:
+      apiToken: (string) your telegram api token from bot father
+      webhookUrl: (string) example service for webhooks - ngrok
+    
+    postgreDatabase:
+      host: (string)
+      port: (string)
+      username: (string)
+      dbname:  (string)
+      sslmode: (string)
+    
+    redisDatabase:
+      host: (string)
+      port: (string)
+    
+    kraken:
+      apiurl: (string)
+    
+    krakenWS:
+      requests:
+        writeWaitInSeconds: (int) 10 by default
+        pongWaitInSeconds: (int) 60 by default
+        pingPeriodInSeconds: (int) 10 by default
+        maxMessageSize: (int) 512 by default
+      kraken:
+        wsapiurl: (string)
+    ```
 
 * #### Assume you have ```.env``` file on top of project of type:
-
-```.dotenv
-DB_PASSWORD = (your postgres db password)
-
-JWT_ACCESS_SIGNING_KEY = (key for signing jwt tokens)
-
-PUBLIC_API_KEY = (public key from kraken futures)
-PRIVATE_API_KEY = (private key from kraken futures)
-
-TELEGRAM_APITOKEN = (telegram api token)
-WEBHOOK_URL = (your webhook url for telegram bot)
-```
+    ```.dotenv
+    DB_PASSWORD = (your postgres db password)
+    
+    JWT_ACCESS_SIGNING_KEY = (key for signing jwt tokens)
+    
+    PUBLIC_API_KEY = (public key from kraken futures)
+    PRIVATE_API_KEY = (private key from kraken futures)
+    ```
 
 * #### Run postgres with settings from your config file
+    ```shell
+    # Example using docker
+    
+    docker pull postgres
+    docker run --name postgres -e POSTGRES_PASSWORD='qwerty' -p 5432:5432 -d postgres
+    ```
+
 * #### Run redis with settings from your config file
+    ```shell
+    # Example using docker
+    
+    docker pull redis
+    docker run --name redis -p 6379:6379 -d redis
+    ```
+
 * #### Run migrate files for postgres using ```migrate```
-```shell
-migrate -path ./schema -database 'postgres://{postgres_username}:{postgres_password}@{host}:{port}/postgres?sslmode={sslmode}' up
-```
+  * __migrate installation__
+  * 
+    ```
+    $ curl -s https://packagecloud.io/install/repositories/golang-migrate/migrate/script.deb.sh | sudo bash
+    $ apt-get update
+    $ apt-get install -y migrate  
+    ```
+  * __run migrate__
+  * 
+    ```shell
+    migrate -path ./schema -database 'postgres://{postgres_username}:{postgres_password}@{host}:{port}/postgres?sslmode={sslmode}' up
+    ```
 
-* #### Then run server and telegram bot
+* #### Then run server
 
-```shell
-go run cmd/api/main.go
-go run pkg/telegramBot/cmd/api/main.go
-```
+    ```shell
+    go run cmd/api/main.go
+    ```
 
 ---
 
+## Installation of server using Docker
+### Linux/OSX
 
-
+* #### You'll need Docker Compose
+* #### Make sure you have all config files like in local installation with some fixes
+  * __Fixes__
+    ```yaml
+      postgreDatabase:
+        host: db (like db service name in docker-compose file)
+      
+      ###
+      
+      redisDatabase:
+        host: redis (like redis service name in docker-compose file)
+    ```
+    
+* #### Run docker-compose
+    ```shell
+    docker-compose up --build server
+    ```
+* #### Now simply run migration files like in local installation
