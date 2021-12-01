@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 
@@ -44,7 +43,7 @@ func (s *OrdersManagerService) SendOrder(input models.SendOrderInput) (models.Se
 	return output, err
 }
 
-func (s *OrdersManagerService) StartTrading(ctx context.Context, input models.StartTradingInput) (<-chan *models.StartTradingResponse, <-chan error, error) {
+func (s *OrdersManagerService) StartTrading(input models.StartTradingInput) (<-chan *models.StartTradingResponse, <-chan error, error) {
 	req, err := s.client.NewWsRequest("/orderManager/ws/start-trade", input.JWTToken)
 	if err != nil {
 		return nil, nil, fmt.Errorf("%s: %w", ErrStartTrading, err)
@@ -57,7 +56,7 @@ func (s *OrdersManagerService) StartTrading(ctx context.Context, input models.St
 
 	var output models.StartTradingResponse
 
-	respCh, errCh := s.client.LoopOverWS(ctx, conn, &output)
+	respCh, errCh := s.client.LoopOverWS(conn, &output)
 
 	tradingRespCh := make(chan *models.StartTradingResponse)
 	go func() {

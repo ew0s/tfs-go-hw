@@ -1,7 +1,6 @@
 package telegramBot
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strconv"
@@ -214,7 +213,7 @@ func (b *BotMan) executeStartTrading(chatID int64, updates tgbotapi.UpdatesChann
 
 	input.JWTToken = token
 
-	startTradingResp, errCh, err := b.tradeBotServices.OrdersManager.StartTrading(context.Background(), input)
+	startTradingResp, errCh, err := b.tradeBotServices.OrdersManager.StartTrading(input)
 	if err != nil {
 		return err
 	}

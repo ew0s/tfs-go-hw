@@ -1,8 +1,6 @@
 package service
 
 import (
-	"context"
-
 	"trade-bot/pkg/client/app"
 	"trade-bot/pkg/client/models"
 )
@@ -15,7 +13,7 @@ type Authorization interface {
 
 type OrdersManager interface {
 	SendOrder(input models.SendOrderInput) (models.SendOrderResponse, error)
-	StartTrading(ctx context.Context, input models.StartTradingInput) (<-chan *models.StartTradingResponse, <-chan error, error)
+	StartTrading(input models.StartTradingInput) (<-chan *models.StartTradingResponse, <-chan error, error)
 }
 
 type Service struct {

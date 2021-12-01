@@ -2,7 +2,6 @@ package app
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -27,7 +26,7 @@ type ClientActions interface {
 	NewWsRequest(path, jwtToken string) (*http.Request, error)
 	Do(req *http.Request, typ interface{}) (*http.Response, error)
 	DoWS(req *http.Request, typ interface{}) (*websocket.Conn, error)
-	LoopOverWS(ctx context.Context, conn *websocket.Conn, typ interface{}) (<-chan interface{}, <-chan error)
+	LoopOverWS(conn *websocket.Conn, typ interface{}) (<-chan interface{}, <-chan error)
 }
 
 type Client struct {
@@ -84,14 +83,9 @@ func (c *Client) DoWS(req *http.Request, typ interface{}) (*websocket.Conn, erro
 	return nil, fmt.Errorf("%s: %s", ErrDoWS, ErrUnableToConnectToWebsocket)
 }
 
-func (c *Client) LoopOverWS(ctx context.Context, conn *websocket.Conn, typ interface{}) (<-chan interface{}, <-chan error) {
+func (c *Client) LoopOverWS(conn *websocket.Conn, typ interface{}) (<-chan interface{}, <-chan error) {
 	loopChan := make(chan interface{}, 1)
 	errCh := make(chan error, 1)
-
-	go func() {
-		<-ctx.Done()
-		conn.Close()
-	}()
 
 	go func() {
 		defer close(loopChan)
