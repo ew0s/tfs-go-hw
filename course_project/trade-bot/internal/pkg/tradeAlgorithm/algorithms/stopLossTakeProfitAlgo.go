@@ -3,11 +3,10 @@ package algorithms
 import (
 	"context"
 	"fmt"
-	"math"
 	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 
 	"trade-bot/internal/pkg/tradeAlgorithm/types"
 	"trade-bot/internal/pkg/web"
@@ -29,19 +28,18 @@ func NewStopLossTakeProfitAlgo(krakenAnalyzer web.KrakenAnalyzer) *StopLossTakeP
 	}
 }
 
-func (a *StopLossTakeProfitAlgo) StartAnalyzing(ctx context.Context, details types.TradingDetails) error {
+func (a *StopLossTakeProfitAlgo) StartAnalyzing(ctx context.Context, buyTime time.Time, details types.TradingDetails) error {
 	candles, err := a.krakenWebsocketSDK.LookForCandles(ctx, krakenFuturesWSSDK.OneMinuteCandlesFeed, []string{details.Symbol})
 	if err != nil {
 		return fmt.Errorf("%s: %w", ErrStartAnalyzing, err)
 	}
 
 	for candle := range candles {
-		log.Info(candle)
 		price, err := strconv.ParseFloat(candle.Close, 64)
-		log.Infof("\nclose: %s\nto_take_profit:%f\nto_stop_loss:%f\n",
-			candle.Close,
-			math.Abs(details.BuyPrice+details.TakeProfitBorder-price),
-			math.Abs(details.BuyPrice-details.StopLossBorder-price))
+
+		if time.Unix(int64(candle.Time), 0).Before(buyTime) {
+			continue
+		}
 
 		if err != nil {
 			return fmt.Errorf("%s: %w", ErrStartAnalyzing, err)

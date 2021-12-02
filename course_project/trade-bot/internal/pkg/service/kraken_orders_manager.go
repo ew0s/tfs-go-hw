@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 	"trade-bot/internal/pkg/models"
 
 	"github.com/pkg/errors"
@@ -15,8 +16,9 @@ import (
 )
 
 var (
-	ErrSendOrderServiceMethod = errors.New("send order service method")
-	ErrStartTradingService    = errors.New("start trading service")
+	ErrSendOrderServiceMethod    = errors.New("send order service method")
+	ErrStartTradingService       = errors.New("start trading service")
+	ErrUnableToParseBuyTimestamp = errors.New("unable to convert buy timestamp")
 )
 
 type KrakenOrdersManagerService struct {
@@ -62,8 +64,12 @@ func (k *KrakenOrdersManagerService) StartTrading(ctx context.Context, userID in
 	}
 
 	details.BuyPrice = startOrder.Price
+	buyTime, err := time.Parse(time.RFC3339, startOrder.Timestamp)
+	if err != nil {
+		return models.Order{}, fmt.Errorf("%s: %w", ErrUnableToParseBuyTimestamp, err)
+	}
 
-	if err := k.trader.StartAnalyzing(ctx, details); err != nil {
+	if err := k.trader.StartAnalyzing(ctx, buyTime, details); err != nil {
 		return models.Order{}, fmt.Errorf("%s: %w", ErrStartTradingService, err)
 	}
 

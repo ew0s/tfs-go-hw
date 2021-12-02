@@ -3,6 +3,7 @@ package webKraken
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -14,6 +15,8 @@ var (
 	ErrConvertTradeDataToCandle = errors.New("convert trade data to candle")
 	ErrLookForCandles           = errors.New("look for candles")
 )
+
+const unixTimeLen = 10
 
 type KrakenAnalyzerWebSDK struct {
 	krakenWebsocketAPI *krakenFuturesWSSDK.WSAPI
@@ -31,7 +34,13 @@ func (k *KrakenAnalyzerWebSDK) LookForCandles(ctx context.Context, feed string, 
 
 	candleCh, errCh := convertTradeDataToCandle(tradeDataCh)
 	go logErrors(errCh)
-	return filterCandles(candleCh), nil
+
+	filteredCandles := filterCandles(candleCh)
+
+	filteredUnixTimeCandles, errCh := filterCandlesUnixTime(filteredCandles)
+	go logErrors(errCh)
+
+	return filteredUnixTimeCandles, nil
 }
 
 func logErrors(errs <-chan error) {
@@ -76,7 +85,7 @@ func filterCandles(candles <-chan krakenFuturesWSSDK.Candle) <-chan krakenFuture
 				candlesChan <- candle
 				continue
 			}
-			if *lastUpdateTime == candle.Time {
+			if candle.Time <= *lastUpdateTime {
 				continue
 			}
 
@@ -86,4 +95,33 @@ func filterCandles(candles <-chan krakenFuturesWSSDK.Candle) <-chan krakenFuture
 	}()
 
 	return candlesChan
+}
+
+func filterCandlesUnixTime(candles <-chan krakenFuturesWSSDK.Candle) (<-chan krakenFuturesWSSDK.Candle, <-chan error) {
+	errCh := make(chan error, 1)
+	candlesChan := make(chan krakenFuturesWSSDK.Candle)
+
+	go func() {
+		defer close(errCh)
+		defer close(candlesChan)
+
+		for candle := range candles {
+			strCandleTime := strconv.Itoa(candle.Time)
+			if len(strCandleTime) > unixTimeLen {
+				lenDiff := len(strCandleTime) - unixTimeLen
+				correctedTime := strCandleTime[:len(strCandleTime)-lenDiff]
+
+				newTime, err := strconv.ParseInt(correctedTime, 10, 64)
+				if err != nil {
+					errCh <- err
+					continue
+				}
+
+				candle.Time = int(newTime)
+				candlesChan <- candle
+			}
+		}
+	}()
+
+	return candlesChan, errCh
 }
