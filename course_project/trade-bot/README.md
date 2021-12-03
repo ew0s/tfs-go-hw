@@ -43,11 +43,6 @@ A cryptocurrency trading bot supporting kraken futures written in Golang.
 
 ---
 
-## Swagger
-
-__When server started:__ ```url: http://{host}:{port}/swagger/index.html```
-
----
 
 ## Local installation of server
 ### Linux/OSX
@@ -69,21 +64,21 @@ __When server started:__ ```url: http://{host}:{port}/swagger/index.html```
     
     client:
       # url of server
-      url: (string)
+      url: (string) example - http://localhost:8000
       
     telegram:
       apiToken: (string) your telegram api token from bot father
       webhookUrl: (string) example service for webhooks - ngrok
     
     postgreDatabase:
-      host: (string)
-      port: (string)
+      host: (string) example - localhost
+      port: (string) eample - 8000
       username: (string)
       dbname:  (string)
       sslmode: (string)
     
     redisDatabase:
-      host: (string)
+      host: (string) example - localhost
       port: (string)
     
     kraken:
@@ -99,7 +94,7 @@ __When server started:__ ```url: http://{host}:{port}/swagger/index.html```
         wsapiurl: (string)
     ```
 
-* #### Assume you have ```.env``` file on top of project of type:
+* #### Assume you have ```.env``` file at the root of project with following:
     ```.dotenv
     DB_PASSWORD = (your postgres db password)
     
@@ -126,15 +121,15 @@ __When server started:__ ```url: http://{host}:{port}/swagger/index.html```
     ```
 
 * #### Run migrate files for postgres using ```migrate```
-  * __migrate installation__
-  * 
+* __migrate installation__
+* 
     ```
-    $ curl -s https://packagecloud.io/install/repositories/golang-migrate/migrate/script.deb.sh | sudo bash
-    $ apt-get update
-    $ apt-get install -y migrate  
+    curl -s https://packagecloud.io/install/repositories/golang-migrate/migrate/script.deb.sh | sudo bash
+    apt-get update
+    apt-get install -y migrate  
     ```
-  * __run migrate__
-  * 
+* __run migrate__
+* 
     ```shell
     migrate -path ./schema -database 'postgres://{postgres_username}:{postgres_password}@{host}:{port}/postgres?sslmode={sslmode}' up
     ```
@@ -152,7 +147,7 @@ __When server started:__ ```url: http://{host}:{port}/swagger/index.html```
 
 * #### You'll need Docker Compose
 * #### Make sure you have all config files like in local installation with some fixes
-  * __Fixes__
+* __Fixes__
     ```yaml
       postgreDatabase:
         host: db (like db service name in docker-compose file)
@@ -162,9 +157,17 @@ __When server started:__ ```url: http://{host}:{port}/swagger/index.html```
       redisDatabase:
         host: redis (like redis service name in docker-compose file)
     ```
-    
+
 * #### Run docker-compose
     ```shell
     docker-compose up --build server
     ```
 * #### Now simply run migration files like in local installation
+
+---
+
+## Swagger
+
+__When server started:__ ```url: http://{host}:{port}/swagger/index.html```
+
+---
