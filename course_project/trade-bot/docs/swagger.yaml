@@ -41,6 +41,31 @@ definitions:
     - size
     - symbol
     type: object
+  models.Order:
+    properties:
+      client_order_id:
+        type: string
+      filled:
+        type: number
+      id:
+        type: string
+      last_update_timestamp:
+        type: string
+      price:
+        type: number
+      quantity:
+        type: number
+      side:
+        type: string
+      symbol:
+        type: string
+      timestamp:
+        type: string
+      type:
+        type: string
+      user_id:
+        type: integer
+    type: object
   models.User:
     properties:
       name:
@@ -173,6 +198,40 @@ paths:
       summary: SignUp
       tags:
       - auth
+  /orderManager/my-orders:
+    get:
+      description: get all orders of user
+      operationId: myOrders
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Order'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.errResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.errResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.errResponse'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/handler.errResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: MyOrders
+      tags:
+      - orderManager
   /orderManager/send-order:
     post:
       consumes:

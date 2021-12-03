@@ -125,6 +125,17 @@ func (h *Handler) startTrade(c *gin.Context) {
 	}
 }
 
+// @Summary MyOrders
+// @Security ApiKeyAuth
+// @Tags orderManager
+// @Description get all orders of user
+// @ID myOrders
+// @Produce  json
+// @Success 200 {object} []models.Order
+// @Failure 401,404 {object} errResponse
+// @Failure 500 {object} errResponse
+// @Failure default {object} errResponse
+// @Router /orderManager/my-orders [get]
 func (h *Handler) myOrders(c *gin.Context) {
 	userID, err := getUserID(c)
 	if err != nil {
