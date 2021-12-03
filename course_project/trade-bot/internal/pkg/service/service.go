@@ -20,6 +20,7 @@ type Authorization interface {
 
 type KrakenOrdersManager interface {
 	SendOrder(userID int, args krakenFuturesSDK.SendOrderArguments) (models.Order, error)
+	GetUserOrders(userID int) ([]models.Order, error)
 	StartTrading(ctx context.Context, userID int, details types.TradingDetails) (models.Order, error)
 }
 

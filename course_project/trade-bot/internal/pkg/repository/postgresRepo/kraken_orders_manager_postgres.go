@@ -1,6 +1,8 @@
 package postgresRepo
 
 import (
+	"fmt"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 
@@ -9,6 +11,7 @@ import (
 
 var (
 	ErrCouldNotRollbackTransaction = errors.New("could not rollback transaction")
+	ErrGetUsersOrder               = errors.New("get user orders")
 )
 
 type KrakenOrdersManagerPostgres struct {
@@ -62,4 +65,27 @@ func (k *KrakenOrdersManagerPostgres) GetOrder(orderID string) (models.Order, er
 	var order models.Order
 	err := k.db.Get(&order, getOrderByIDQuery, orderID)
 	return order, err
+}
+
+const getUserOrdersQuery = `SELECT * FROM orders WHERE user_id=$1`
+
+func (k *KrakenOrdersManagerPostgres) GetUserOrders(userID int) ([]models.Order, error) {
+	rows, err := k.db.Query(getUserOrdersQuery, userID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", ErrGetUsersOrder, err)
+	}
+	defer rows.Close()
+
+	var orders []models.Order
+	for rows.Next() {
+		var order models.Order
+
+		if err := rows.Scan(&order.ID, &order.UserID, &order.ClientOrderID, &order.Type, &order.Symbol, &order.Quantity,
+			&order.Side, &order.Filled, &order.Timestamp, &order.LastUpdateTimestamp, &order.Price); err != nil {
+			return nil, fmt.Errorf("%s: %w", ErrGetUsersOrder, err)
+		}
+		orders = append(orders, order)
+	}
+
+	return orders, nil
 }

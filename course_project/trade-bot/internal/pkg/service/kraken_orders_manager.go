@@ -83,3 +83,7 @@ func (k *KrakenOrdersManagerService) StartTrading(ctx context.Context, userID in
 
 	return finishOrder, nil
 }
+
+func (k *KrakenOrdersManagerService) GetUserOrders(userID int) ([]models.Order, error) {
+	return k.repo.GetUserOrders(userID)
+}

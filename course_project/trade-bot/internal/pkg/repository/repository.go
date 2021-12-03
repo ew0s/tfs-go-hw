@@ -24,6 +24,7 @@ type JWT interface {
 
 type KrakenOrdersManager interface {
 	CreateOrder(userID int, order models.Order) error
+	GetUserOrders(userID int) ([]models.Order, error)
 	GetOrder(orderID string) (models.Order, error)
 }
 

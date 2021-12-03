@@ -124,3 +124,19 @@ func (h *Handler) startTrade(c *gin.Context) {
 		return
 	}
 }
+
+func (h *Handler) myOrders(c *gin.Context) {
+	userID, err := getUserID(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	orders, err := h.services.KrakenOrdersManager.GetUserOrders(userID)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, orders)
+}

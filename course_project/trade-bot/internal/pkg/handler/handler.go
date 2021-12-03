@@ -39,6 +39,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	{
 		orderManager.POST("send-order", h.sendOrder)
 		orderManager.GET("ws/start-trade", h.startTrade)
+		orderManager.GET("my-orders", h.myOrders)
 	}
 
 	return router
