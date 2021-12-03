@@ -1,0 +1,6 @@
+# env files
+.env
+
+# configs
+config*.yml
+config*.yaml
