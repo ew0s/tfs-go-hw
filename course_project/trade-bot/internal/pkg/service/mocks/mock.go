@@ -5,8 +5,11 @@
 package mock_service
 
 import (
+	context "context"
 	reflect "reflect"
 	models "trade-bot/internal/pkg/models"
+	types "trade-bot/internal/pkg/tradeAlgorithm/types"
+	krakenFuturesSDK "trade-bot/pkg/krakenFuturesSDK"
 
 	gomock "github.com/golang/mock/gomock"
 )
@@ -107,4 +110,57 @@ func (m *MockAuthorization) LogoutUser(token string) error {
 func (mr *MockAuthorizationMockRecorder) LogoutUser(token interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LogoutUser", reflect.TypeOf((*MockAuthorization)(nil).LogoutUser), token)
+}
+
+// MockKrakenOrdersManager is a mock of KrakenOrdersManager interface.
+type MockKrakenOrdersManager struct {
+	ctrl     *gomock.Controller
+	recorder *MockKrakenOrdersManagerMockRecorder
+}
+
+// MockKrakenOrdersManagerMockRecorder is the mock recorder for MockKrakenOrdersManager.
+type MockKrakenOrdersManagerMockRecorder struct {
+	mock *MockKrakenOrdersManager
+}
+
+// NewMockKrakenOrdersManager creates a new mock instance.
+func NewMockKrakenOrdersManager(ctrl *gomock.Controller) *MockKrakenOrdersManager {
+	mock := &MockKrakenOrdersManager{ctrl: ctrl}
+	mock.recorder = &MockKrakenOrdersManagerMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockKrakenOrdersManager) EXPECT() *MockKrakenOrdersManagerMockRecorder {
+	return m.recorder
+}
+
+// SendOrder mocks base method.
+func (m *MockKrakenOrdersManager) SendOrder(userID int, args krakenFuturesSDK.SendOrderArguments) (models.Order, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SendOrder", userID, args)
+	ret0, _ := ret[0].(models.Order)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SendOrder indicates an expected call of SendOrder.
+func (mr *MockKrakenOrdersManagerMockRecorder) SendOrder(userID, args interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendOrder", reflect.TypeOf((*MockKrakenOrdersManager)(nil).SendOrder), userID, args)
+}
+
+// StartTrading mocks base method.
+func (m *MockKrakenOrdersManager) StartTrading(ctx context.Context, userID int, details types.TradingDetails) (models.Order, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StartTrading", ctx, userID, details)
+	ret0, _ := ret[0].(models.Order)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// StartTrading indicates an expected call of StartTrading.
+func (mr *MockKrakenOrdersManagerMockRecorder) StartTrading(ctx, userID, details interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartTrading", reflect.TypeOf((*MockKrakenOrdersManager)(nil).StartTrading), ctx, userID, details)
 }
