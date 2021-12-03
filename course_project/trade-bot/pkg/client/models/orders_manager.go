@@ -60,3 +60,26 @@ type StartTradingDetails struct {
 type StartTradingResponse struct {
 	SendOrderResponse
 }
+
+type GetUserOrdersInput struct {
+	JWTToken string
+}
+
+type GetUserOrdersResponse struct {
+	Orders  []Order `json:"orders,omitempty"`
+	Message string  `json:"message,omitempty"`
+}
+
+type Order struct {
+	ID                  string    `json:"id"`
+	UserID              int       `json:"user_id"`
+	ClientOrderID       string    `json:"client_order_id"`
+	Type                string    `json:"type"`
+	Symbol              string    `json:"symbol"`
+	Quantity            int       `json:"quantity"`
+	Side                string    `json:"side"`
+	Filled              int       `json:"filled"`
+	Timestamp           time.Time `json:"timestamp"`
+	LastUpdateTimestamp time.Time `json:"last_update_timestamp"`
+	Price               float64   `json:"price"`
+}

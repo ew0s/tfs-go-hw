@@ -149,5 +149,7 @@ func (h *Handler) myOrders(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, orders)
+	c.JSON(http.StatusOK, map[string]interface{}{
+		"orders": orders,
+	})
 }

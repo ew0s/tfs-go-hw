@@ -14,6 +14,7 @@ type Authorization interface {
 type OrdersManager interface {
 	SendOrder(input models.SendOrderInput) (models.SendOrderResponse, error)
 	StartTrading(input models.StartTradingInput) (<-chan *models.StartTradingResponse, <-chan error, error)
+	GetUserOrders(input models.GetUserOrdersInput) (models.GetUserOrdersResponse, error)
 }
 
 type Service struct {

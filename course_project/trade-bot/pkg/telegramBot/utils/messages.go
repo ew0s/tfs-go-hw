@@ -119,3 +119,7 @@ const StartTradingWillNotifyMessage = `
 const StartTradingSuccessMessage = `
 ✅ Order have been successfully traded!
 `
+
+const GetUserOrdersErrMessage = `
+⛔ Unable to continue further execution of get user orders due to
+`

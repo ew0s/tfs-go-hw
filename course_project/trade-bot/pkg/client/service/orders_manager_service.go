@@ -11,8 +11,9 @@ import (
 )
 
 var (
-	ErrSendOrder    = errors.New("send order")
-	ErrStartTrading = errors.New("start trading")
+	ErrSendOrder     = errors.New("send order")
+	ErrStartTrading  = errors.New("start trading")
+	ErrGetUserOrders = errors.New("get user orders")
 )
 
 type OrdersManagerService struct {
@@ -68,4 +69,24 @@ func (s *OrdersManagerService) StartTrading(input models.StartTradingInput) (<-c
 	}()
 
 	return tradingRespCh, errCh, nil
+}
+
+func (s *OrdersManagerService) GetUserOrders(input models.GetUserOrdersInput) (models.GetUserOrdersResponse, error) {
+	req, err := s.client.NewRequest(http.MethodGet, "/orderManager/my-orders", input.JWTToken, nil)
+	if err != nil {
+		return models.GetUserOrdersResponse{}, fmt.Errorf("%s: %w", ErrGetUserOrders, err)
+	}
+
+	var output models.GetUserOrdersResponse
+
+	resp, err := s.client.Do(req, &output)
+	if err != nil {
+		return models.GetUserOrdersResponse{}, fmt.Errorf("%s: %w", ErrGetUserOrders, err)
+	}
+
+	if !(resp.StatusCode >= 200 && resp.StatusCode < 400) {
+		return models.GetUserOrdersResponse{}, fmt.Errorf("%s: %s: %s", ErrGetUserOrders, resp.Status, output.Message)
+	}
+
+	return output, err
 }

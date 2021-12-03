@@ -35,6 +35,7 @@ const (
 	exitFromSendOrderCommand    = "/exit_from_send_order"
 	startTradingCommand         = "/start_trading"
 	exitFromStartTradingCommand = "/exit_from_start_trading"
+	getUserOrdersCommand        = "/get_user_orders"
 	logoutCommand               = "/logout"
 )
 
@@ -161,6 +162,26 @@ func (b *BotMan) ServeTelegram() {
 				successMessage := tgbotapi.NewMessage(chatID, fmt.Sprintf("%s\n%s", utils.SendOrderSuccessMessage, resp.String()))
 				b.sendMessage(chatID, successMessage)
 
+			case getUserOrdersCommand:
+				token, err := b.userIdentity(update.Message.From.UserName)
+				if err != nil {
+					log.Warn(err)
+					errMessage := tgbotapi.NewMessage(chatID, fmt.Sprintf("%s: %s", utils.GetUserOrdersErrMessage, err.Error()))
+					b.sendMessage(chatID, errMessage)
+					continue
+				}
+
+				resp, err := b.executeGetUserOrders(token)
+				if err != nil {
+					log.Warn(err)
+					errMessage := tgbotapi.NewMessage(chatID, fmt.Sprintf("%s: %s", utils.GetUserOrdersErrMessage, err.Error()))
+					b.sendMessage(chatID, errMessage)
+					continue
+				}
+
+				successMessage := tgbotapi.NewMessage(chatID, fmt.Sprintf("%s\n%v", utils.SendOrderSuccessMessage, resp.Orders))
+				b.sendMessage(chatID, successMessage)
+
 			case startTradingCommand:
 				token, err := b.userIdentity(update.Message.From.UserName)
 				if err != nil {
@@ -203,6 +224,17 @@ func (b *BotMan) sendMessage(chatID int64, message tgbotapi.MessageConfig) {
 	if _, err := b.bot.Send(message); err != nil {
 		log.Warnf("%s: [chatID] - %d", ErrCouldNotSendMessage, chatID)
 	}
+}
+
+func (b *BotMan) executeGetUserOrders(token string) (models.GetUserOrdersResponse, error) {
+	input := models.GetUserOrdersInput{JWTToken: token}
+
+	resp, err := b.tradeBotServices.GetUserOrders(input)
+	if err != nil {
+		return models.GetUserOrdersResponse{}, err
+	}
+
+	return resp, nil
 }
 
 func (b *BotMan) executeStartTrading(chatID int64, updates tgbotapi.UpdatesChannel, token string) error {
