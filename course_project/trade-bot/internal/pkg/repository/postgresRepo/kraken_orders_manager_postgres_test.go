@@ -216,3 +216,78 @@ func TestKrakenOrdersManagerPostgres_GetOrder(t *testing.T) {
 		})
 	}
 }
+
+func TestKrakenOrdersManagerPostgres_GetUserOrders(t *testing.T) {
+	mockDB, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	defer mockDB.Close()
+	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+
+	r := NewKrakenOrdersManagerPostgres(sqlxDB)
+
+	tests := []struct {
+		name    string
+		userID  int
+		order   models.Order
+		mock    func(userID int, order models.Order)
+		want    []models.Order
+		wantErr bool
+	}{
+		{
+			name:   "OK",
+			userID: 1,
+			order: models.Order{
+				ID:                  "1",
+				UserID:              1,
+				ClientOrderID:       "1",
+				Type:                "type",
+				Symbol:              "symbol",
+				Quantity:            10,
+				Side:                "buy",
+				Filled:              10,
+				Timestamp:           "time",
+				LastUpdateTimestamp: "time",
+				Price:               100,
+			},
+			mock: func(userID int, order models.Order) {
+				rows := sqlmock.NewRows([]string{"order_id", "user_id", "cli_order_id", "type", "symbol", "quantity",
+					"side", "filled", "timestamp", "last_update_timestamp", "price"}).
+					AddRow(order.ID, order.UserID, order.ClientOrderID, order.Type, order.Symbol, order.Quantity,
+						order.Side, order.Filled, order.Timestamp, order.LastUpdateTimestamp, order.Price)
+				mock.ExpectQuery("SELECT (.+) FROM orders").
+					WithArgs(userID).WillReturnRows(rows)
+			},
+			want: []models.Order{{
+				ID:                  "1",
+				UserID:              1,
+				ClientOrderID:       "1",
+				Type:                "type",
+				Symbol:              "symbol",
+				Quantity:            10,
+				Side:                "buy",
+				Filled:              10,
+				Timestamp:           "time",
+				LastUpdateTimestamp: "time",
+				Price:               100,
+			}},
+			wantErr: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.mock(test.userID, test.order)
+
+			gorOrders, err := r.GetUserOrders(test.userID)
+			if test.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.want, gorOrders)
+			}
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+}
