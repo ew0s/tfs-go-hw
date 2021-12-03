@@ -179,7 +179,7 @@ func (b *BotMan) ServeTelegram() {
 					continue
 				}
 
-				successMessage := tgbotapi.NewMessage(chatID, fmt.Sprintf("%s\n%v", utils.SendOrderSuccessMessage, resp.Orders))
+				successMessage := tgbotapi.NewMessage(chatID, fmt.Sprintf("%s\n%s", utils.SendOrderSuccessMessage, resp.String()))
 				b.sendMessage(chatID, successMessage)
 
 			case startTradingCommand:

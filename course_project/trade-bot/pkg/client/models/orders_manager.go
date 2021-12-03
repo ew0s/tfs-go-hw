@@ -70,6 +70,18 @@ type GetUserOrdersResponse struct {
 	Message string  `json:"message,omitempty"`
 }
 
+func (r *GetUserOrdersResponse) String() string {
+	if r.Message != "" {
+		return fmt.Sprintf("Message: %s", r.Message)
+	}
+
+	orders := ""
+	for _, ord := range r.Orders {
+		orders += fmt.Sprintf("%s\n\n", ord.String())
+	}
+	return orders
+}
+
 type Order struct {
 	ID                  string    `json:"id"`
 	UserID              int       `json:"user_id"`
@@ -82,4 +94,17 @@ type Order struct {
 	Timestamp           time.Time `json:"timestamp"`
 	LastUpdateTimestamp time.Time `json:"last_update_timestamp"`
 	Price               float64   `json:"price"`
+}
+
+func (o *Order) String() string {
+	return fmt.Sprintf(`
+		order_id:   %s,
+		type:       %s,
+		symbol:     %s,
+		quantity:   %d,
+		side:       %s,
+		filled:     %d,
+		timestamp:  %s,
+		price:      %f,
+	`, o.ID, o.Type, o.Symbol, o.Quantity, o.Side, o.Filled, o.Timestamp, o.Price)
 }
